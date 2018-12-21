@@ -11,7 +11,7 @@
 
                  [aleph "0.4.6"]
                  [ring/ring-core "1.7.1"]
-                 [compojure "1.6.1"]
+                 [bidi "2.1.4"]
 
                  [mount "0.1.15"]
 

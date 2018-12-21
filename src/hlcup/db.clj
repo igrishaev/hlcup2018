@@ -52,12 +52,12 @@
   :stop (db-close))
 
 
-(defn start!
+(defn start
   []
   (mount/start #'conn))
 
 
-(defn stop!
+(defn stop
   []
   (mount/stop #'conn))
 
