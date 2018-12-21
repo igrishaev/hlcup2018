@@ -1,0 +1,95 @@
+[
+
+ {:db/ident       :sex/m}
+ {:db/ident       :sex/f}
+
+
+ {:db/ident       :status/free}
+ {:db/ident       :status/busy}
+ {:db/ident       :status/complex}
+
+
+ {:db/ident       :account/id
+  :db/valueType   :db.type/long
+  :db/cardinality :db.cardinality/one
+  :db/unique      :db.unique/identity}
+
+ {:db/ident       :account/email
+  :db/valueType   :db.type/string
+  :db/cardinality :db.cardinality/one
+  :db/unique      :db.unique/identity}
+
+ {:db/ident       :account/fname
+  :db/valueType   :db.type/string
+  :db/cardinality :db.cardinality/one}
+
+ {:db/ident       :account/sname
+  :db/valueType   :db.type/string
+  :db/cardinality :db.cardinality/one}
+
+ {:db/ident       :account/phone
+  :db/valueType   :db.type/string
+  :db/cardinality :db.cardinality/one}
+
+ {:db/ident       :account/sex
+  :db/valueType   :db.type/ref
+  :db/cardinality :db.cardinality/one
+  :db/index       true
+  :db/isComponent true}
+
+ {:db/ident       :account/birth
+  :db/valueType   :db.type/long
+  :db/cardinality :db.cardinality/one}
+
+ {:db/ident       :account/country
+  :db/valueType   :db.type/string
+  :db/cardinality :db.cardinality/one}
+
+ {:db/ident       :account/city
+  :db/valueType   :db.type/string
+  :db/cardinality :db.cardinality/one}
+
+ {:db/ident       :account/joined
+  :db/valueType   :db.type/long
+  :db/cardinality :db.cardinality/one}
+
+ {:db/ident       :account/status
+  :db/valueType   :db.type/ref
+  :db/cardinality :db.cardinality/one
+  :db/isComponent true}
+
+ {:db/ident       :account/interests
+  :db/valueType   :db.type/string
+  :db/cardinality :db.cardinality/many
+  :db/index       true}
+
+ {:db/ident       :account/premium
+  :db/valueType   :db.type/ref
+  :db/cardinality :db.cardinality/one
+  :db/isComponent true}
+
+ {:db/ident       :account/likes
+  :db/valueType   :db.type/ref
+  :db/cardinality :db.cardinality/many
+  :db/isComponent true}
+
+
+ {:db/ident       :premium/start
+  :db/valueType   :db.type/long
+  :db/cardinality :db.cardinality/one}
+
+ {:db/ident       :premium/finish
+  :db/valueType   :db.type/long
+  :db/cardinality :db.cardinality/one}
+
+
+
+ {:db/ident       :like/id
+  :db/valueType   :db.type/ref
+  :db/cardinality :db.cardinality/one}
+
+ {:db/ident       :like/ts
+  :db/valueType   :db.type/long
+  :db/cardinality :db.cardinality/one}
+
+]
