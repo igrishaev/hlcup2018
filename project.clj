@@ -15,6 +15,7 @@
                  [ring/ring-json "0.4.0"]
                  [mount "0.1.15"]
                  [cheshire "5.8.1"]
+                 [clj-time "0.15.0"]
                  [com.datomic/datomic-free "0.9.5697"]]
 
   :main ^:skip-aot hlcup.core

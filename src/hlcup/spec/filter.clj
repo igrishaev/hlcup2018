@@ -18,15 +18,14 @@
      (catch Exception e#
        :clojure.spec.alpha/invalid)))
 
+
 (s/def ::null
-  (s/and
-   #{"0" "1"}
-   (s/conformer
-    (fn [value]
-      (case value
-        "0" 0
-        "1" 1
-        invalid)))))
+  (s/conformer
+   (fn [value]
+     (case value
+       "0" 0
+       "1" 1
+       invalid))))
 
 
 (s/def ::string string?)
@@ -80,33 +79,134 @@
 ;; Fields
 ;;
 
-(s/def ::fname_null ::null)
-(s/def ::fname_eq ::string)
-(s/def ::fname_any ::string-split)
+;;
 
+(s/def ::query_id any?)
+
+(s/def ::limit ::->int)
+
+;;
+
+(s/def ::->sex
+  (s/conformer
+   (fn [value]
+     (case value
+       "m" :sex/m
+       "f" :sex/f
+       invalid))))
+
+(s/def ::sex_eq ::->sex)
+
+;;
+
+(s/def ::email_domain ::string)
+(s/def ::email_lt     ::string)
+(s/def ::email_gt     ::string)
+
+;;
+
+(s/def ::->status
+  (s/conformer
+   (fn [value]
+     (case value
+       "свободны"   :status/free
+       "заняты"     :status/busy
+       "всё сложно" :status/complex
+       invalid))))
+
+
+(s/def ::status_eq  ::->status)
+(s/def ::status_neq ::->status)
+
+;;
+
+(s/def ::fname_null ::null)
+(s/def ::fname_eq   ::string)
+(s/def ::fname_any  ::string-split)
+
+;;
+
+(s/def ::sname_eq     ::string)
+(s/def ::sname_starts ::string)
+(s/def ::sname_null   ::null)
+
+;;
+
+(s/def ::phone_code ::string)
+(s/def ::phone_null ::null)
+
+;;
+
+(s/def ::country_eq   ::string)
+(s/def ::country_null ::null)
+
+;;
+
+(s/def ::city_eq   ::string)
+(s/def ::city_any  ::string-split)
+(s/def ::city_null ::null)
+
+;;
+
+(s/def ::birth_lt   ::->int)
+(s/def ::birth_gt   ::->int)
+(s/def ::birth_year ::->int)
+
+;;
 
 (s/def ::interests_contains ::string-split)
-(s/def ::interests_any ::string-split)
+(s/def ::interests_any      ::string-split)
+
+;;
 
 (s/def ::likes_contains ::int-split)
 
-(s/def ::premium_now ::one)
+;;
+
+(s/def ::premium_now  ::one)
 (s/def ::premium_null ::null)
 
-(s/def ::limit
-  (s/and ::string ::->int))
-
-
-(s/def ::sex_eq
-  #{"m" "f"})
-
+;;
 
 (s/def ::params
   (only-keys :opt-un [::query_id
-                      ::fname_eq
                       ::limit
 
                       ::sex_eq
+
+                      ::email_domain
+                      ::email_lt
+                      ::email_gt
+
+                      ::status_eq
+                      ::status_neq
+
+                      ::fname_null
+                      ::fname_eq
+                      ::fname_any
+
+                      ::sname_eq
+                      ::sname_starts
+                      ::sname_null
+
+                      ::phone_code
+                      ::phone_null
+
+                      ::country_eq
+                      ::country_null
+
+                      ::city_eq
+                      ::city_any
+                      ::city_null
+
+                      ::birth_lt
+                      ::birth_gt
+                      ::birth_year
+
+                      ::interests_contains
                       ::interests_any
 
-                      ]))
+                      ::likes_contains
+
+                      ::premium_now
+                      ::premium_null]))

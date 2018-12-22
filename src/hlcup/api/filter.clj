@@ -2,7 +2,17 @@
   (:require
    [hlcup.spec.filter]
    [hlcup.middleware :refer [wrap-spec]]
-   [hlcup.db :as db]))
+   [hlcup.db :as db]
+
+   [clj-time.core :as time]
+   [clj-time.coerce :as coerce]
+
+   [clojure.string :as str]))
+
+
+(defn stub
+  [name]
+  (gensym (str "?_" name "_")))
 
 
 (def scope-base
@@ -10,11 +20,12 @@
     :in [$]
     :where []
     :args []
-    :fields [:id :email]})
+    :fields []})
 
 
 (defn add-defaults
   [scope]
+  ;; todo check email
   (-> scope
       (update :where conj
               '[?a :account/email ?email]
@@ -31,132 +42,387 @@
   (fn [scope predicate value]
     predicate))
 
+;;
 
-(defmethod apply-predicate
-  :default
-  [scope _ _]
-  scope)
+(defmacro push
+  [vector key & values]
+  `(update ~vector ~key conj ~@values))
 
 
-(defn ->sex
-  [value]
-  (case value
-    "m" :sex/m
-    "f" :sex/f))
+(defmacro append
+  [vector key values]
+  `(update ~vector ~key into ~values))
 
 
 (defmethod apply-predicate
   :sex_eq
   [scope _ value]
   (-> scope
-      (update :where conj '[?a :account/sex ?sex])
-      (update :fields conj :sex)
-      (update :find conj '?sex)
-      (update :in conj '?sex)
-      (update :args conj (->sex value))))
+      (push :where '[?a :account/sex ?sex])
+      (push :fields :sex)
+      (push :find '?sex)
+      (push :args value)))
 
+;;
+
+
+;; todo types
+(defn domain-match?
+  [email domain]
+  (str/ends-with? email (str "@" domain)))
+
+
+(defmethod apply-predicate
+  :email_domain
+  ;; todo: store domain
+  [scope _ value]
+  (-> scope
+      (push :where
+            '[?a :account/email ?email]
+            '[(hlcup.api.filter/domain-match? ?email ?_domain)])
+
+      (push :fields :email)
+      (push :find   '?email)
+      (push :in     '?_domain)
+      (push :args   value)))
+
+
+(defmethod apply-predicate
+  :email_lt
+  [scope _ value]
+  (-> scope
+      (push :where
+            '[?a :account/email ?email]
+            '[(< ?email ?_email)])
+
+      (push :fields :email)
+      (push :find   '?email)
+      (push :in     '?_email)
+      (push :args   value)))
+
+
+(defmethod apply-predicate
+  :email_gt
+  [scope _ value]
+  (-> scope
+      (push :where
+            '[?a :account/email ?email]
+            '[(> ?email ?_email)])
+
+      (push :fields :email)
+      (push :find   '?email)
+      (push :in     '?_email)
+      (push :args   value)))
+
+;;
 
 (defmethod apply-predicate
   :status_eq
   [scope _ value]
   (-> scope
-      (update :where conj '[?a :account/status ?status])
-      (update :find conj '?status)
-      (update :in conj '?status)
-      (update :args conj value)))
+      (push :fields :status)
+      (push :where  '[?a :account/status ?status])
+      (push :find   '?status)
+      (push :in     '?status)
+      (push :args   value)))
 
 
 (defmethod apply-predicate
   :status_neq
   [scope _ value]
+  ;; todo maybe or by two other
   (-> scope
-      ;; todo: maybe search by two other statuses
-      (update :where conj '(not [?a :account/status ?status]))
-      (update :find conj '?status)
-      (update :in conj '?status)
-      (update :args conj value)))
+      (push :fields :status)
+      (push :where  '(not [?a :account/status ?status]))
+      (push :find   '?status)
+      (push :in     '?status)
+      (push :args   value)))
 
+;;
 
 (defmethod apply-predicate
   :fname_eq
   [scope _ value]
   (-> scope
-      (update :where conj '[?a :account/fname ?fname])
-      (update :find conj '?fname)
-      (update :in conj '?fname)
-      (update :args conj value)))
+      (push :fields :fname)
+      (push :where  '[?a :account/fname ?fname])
+      (push :find   '?fname)
+      (push :in     '?fname)
+      (push :args   value)))
 
 
 (defmethod apply-predicate
   :fname_any
   [scope _ value]
   (-> scope
-      (update :where conj '[?a :account/fname ?fname])
-      (update :find conj '?fname)
-      (update :in conj '[?fname ...])
-      (update :args conj value)))
+      (push :fields :fname)
+      (push :where  '[?a :account/fname ?fname])
+      (push :find   '?fname)
+      (push :in     '[?fname ...])
+      (push :args   value)))
 
 
 (defmethod apply-predicate
   :fname_null
   [scope _ value]
+  (condp = value
 
-  ;; todo warning
-  #_
-  (case value
     0
     (-> scope
-        (update :where conj '[(missing? $ ?a :account/fname)]))
+        (push :where '[(missing? $ ?a :account/fname)]))
 
     1
     (-> scope
-        (update :where conj '[?a :account/fname ?fname])
-        (update :find conj '?fname)
-        (update :in conj '?fname)
-        (update :args conj value))))
+        (push :fields :fname)
+        (push :where  '[?a :account/fname ?fname])
+        (push :find   '?fname))))
+
+;;
+
+(defmethod apply-predicate
+  :sname_eq
+  [scope _ value]
+  (-> scope
+      (push :fields :sname)
+      (push :where  '[?a :account/sname ?sname])
+      (push :find   '?sname)
+      (push :in     '?sname)
+      (push :args   value)))
+
+
+(defmethod apply-predicate
+  :sname_starts
+  [scope _ value]
+  (-> scope
+      ;; todo
+      (push :fields :sname)
+      (push :where
+            '[?a :account/sname ?sname]
+            '[(clojure.string/starts-with? ?sname ?_sname)])
+      (push :find  '?sname)
+      (push :in    '?_sname)
+      (push :args  value)))
+
+
+(defmethod apply-predicate
+  :sname_null
+  [scope _ value]
+  (condp = value
+
+    0
+    (-> scope
+        (push :where '[(missing? $ ?a :account/sname)]))
+
+    1
+    (-> scope
+        (push :fields :sname)
+        (push :where  '[?a :account/sname ?sname])
+        (push :find   '?sname))))
+
+;;
+
+;; todo types
+(defn phone-matches?
+  [phone code]
+  (= (subs phone 2 5) code))
+
+
+(defmethod apply-predicate
+  :phone_code
+  [scope _ value]
+  (-> scope
+      ;; todo store code
+      (push :fields :phone)
+      (push :where
+            '[?a :account/phone ?phone]
+            '[(hlcup.api.filter/phone-matches? ?phone ?code)])
+      (push :find  '?phone)
+      (push :in    '?code)
+      (push :args  value)))
+
+
+(defmethod apply-predicate
+  :phone_null
+  [scope _ value]
+  (condp = value
+
+    0
+    (-> scope
+        (push :where '[(missing? $ ?a :account/phone)]))
+
+    1
+    (-> scope
+        (push :fields :phone)
+        (push :where  '[?a :account/phone ?phone])
+        (push :find   '?phone))))
+
+;;
+
+
+(defmethod apply-predicate
+  :country_eq
+  [scope _ value]
+  (-> scope
+      (push :fields :country)
+      (push :where  '[?a :account/country ?country])
+      (push :find   '?country)
+      (push :in     '?country)
+      (push :args   value)))
+
+
+(defmethod apply-predicate
+  :country_null
+  [scope _ value]
+  (condp = value
+
+    0
+    (-> scope
+        (push :where '[(missing? $ ?a :account/country)]))
+
+    1
+    (-> scope
+        (push :fields :country)
+        (push :where  '[?a :account/country ?country])
+        (push :find   '?country))))
+
+;;
+
+(defmethod apply-predicate
+  :city_eq
+  [scope _ value]
+  (-> scope
+      (push :fields :city)
+      (push :where  '[?a :account/city ?city])
+      (push :find   '?city)
+      (push :in     '?city)
+      (push :args   value)))
+
+
+(defmethod apply-predicate
+  :city_any
+  [scope _ value]
+  (-> scope
+      (push :fields :city)
+      (push :where  '[?a :account/city ?city])
+      (push :find   '?city)
+      (push :in     '[?city ...])
+      (push :args   value)))
+
+
+(defmethod apply-predicate
+  :city_null
+  [scope _ value]
+  (condp = value
+
+    0
+    (-> scope
+        (push :where '[(missing? $ ?a :account/city)]))
+
+    1
+    (-> scope
+        (push :fields :city)
+        (push :where  '[?a :account/city ?city])
+        (push :find   '?city))))
+
+;;
+
+(defmethod apply-predicate
+  :birth_lt
+  [scope _ value]
+  (-> scope
+      (push :fields :birth)
+      (push :where
+            '[?a :account/birth ?birth]
+            '[(< ?birth ?_birth)])
+      (push :find  '?birth)
+      (push :in    '?_birth)
+      (push :args  value)))
+
+
+(defmethod apply-predicate
+  :birth_gt
+  [scope _ value]
+  (-> scope
+      (push :fields :birth)
+      (push :where
+            '[?a :account/birth ?birth]
+            '[(> ?birth ?_birth)])
+      (push :find  '?birth)
+      (push :in    '?_birth)
+      (push :args  value)))
+
+
+;; todo types
+(defn timestamp-year?
+  [timestamp year]
+  (-> timestamp
+      (* 1000)
+      coerce/from-long
+      time/year
+      (= year)))
+
+
+(defmethod apply-predicate
+  :birth_year
+  [scope _ value]
+  ;; todo store year
+  ;; todo move query funcs
+  (-> scope
+      (push :fields :birth)
+      (push :where
+            '[?a :account/birth ?birth]
+            '[(hlcup.api.filter/timestamp-year? ?birth ?year)])
+      (push :find  '?birth)
+      (push :in    '?_year)
+      (push :args  value)))
+
+;;
+
+(defmethod apply-predicate
+  :interests_contains
+  [scope _ value]
+
+  (let [new-sym (partial stub "interest")
+        symbols (repeatedly (count value) new-sym)]
+
+    (-> scope
+        (append :where
+                (for [sym symbols]
+                  ['?a :account/interests sym]))
+        (append :in   symbols)
+        (append :args value))))
 
 
 (defmethod apply-predicate
   :interests_any
   [scope _ value]
   (-> scope
-      (update :where conj '[?a :account/interests ?interest])
-      (update :in conj '[?interest ...])
-      (update :args conj value)))
+      (push :where '[?a :account/interests ?interest])
+      (push :in    '[?interest ...])
+      (push :args  value)))
 
-
-(defmethod apply-predicate
-  :interests_contains
-  [scope _ value]
-
-  (let [new-sym #(gensym "?interest")
-        symbols (repeatedly (count value) new-sym)]
-
-    (-> scope
-        (update :where into
-                (for [sym symbols]
-                  ['?a :account/interests sym]))
-        (update :in into symbols)
-        (update :args into value))))
-
+;;
 
 (defmethod apply-predicate
   :likes_contains
   [scope _ value]
 
-  (let [new-sym #(gensym "?account")
-        symbols (repeatedly (count value) new-sym)
-        ref-seq (for [id value]
-                  [:account/id id])]
+  (let [new-sym (partial stub "account")
+        symbols (repeatedly (count value) new-sym)]
 
     (-> scope
 
-        (update :where conj '[?a :account/likes ?like])
-        (update :where into
+        (push :where '[?a :account/likes ?like])
+        (append :where
                 (for [sym symbols]
                   ['?like :like/id sym]))
-        (update :in into symbols)
-        (update :args into ref-seq))))
+
+        (append :in symbols)
+        (append :args
+                (for [id value]
+                  [:account/id id])))))
+
+;;
 
 
 (defmethod apply-predicate
@@ -164,48 +430,48 @@
   [scope _ value]
   (-> scope
 
+      ;; todo now
       ;; todo premium storage
-      (update :where conj
-              '[?a :account/premium ?premium]
-              '[?premium :premium/start ?start]
-              '[?premium :premium/finish ?finish]
-              '[(< ?start ?now ?finish)])
+      (push :fields
+            :start :finisj)
 
-      (update :find conj
-              '?start
-              '?finish)
+      (push :where
+            '[?a :account/premium ?premium]
+            '[?premium :premium/start ?start]
+            '[?premium :premium/finish ?finish]
+            '[(< ?start ?now ?finish)])
 
-      (update :in conj
-              '?now)
+      (push :find
+            '?start
+            '?finish)
 
-      ;; todo deal with premium
-      (update :args conj
-              111111111)))
+      (push :in '?now)
+      (push :args 111111111)))
 
 
 (defmethod apply-predicate
   :premium_null
   [scope _ value]
 
-  #_
-  (case value
+  (condp = value
 
     0
     (-> scope
-        (update :where conj
-                '[(missing? $ ?a :account/premium)]))
+        (push :where '[(missing? $ ?a :account/premium)]))
 
     1
     (-> scope
-        (update :where conj
-                '[?a :account/premium ?premium]
-                '[?premium :premium/start ?start]
-                '[?premium :premium/finish ?finish])
+        ;; todo premium
+        (push :fields :start :finish)
 
-        (update :find conj '?fname)
-        (update :in conj '?fname)
-        (update :args conj value))))
+        (push :where
+              '[?a :account/premium ?premium]
+              '[?premium :premium/start ?start]
+              '[?premium :premium/finish ?finish])
 
+        (push :find '?start '?finish))))
+
+;;
 
 
 (defn params->scope
@@ -221,7 +487,18 @@
 
 (defn ->model
   [fields row]
-  (zipmap ["foo" "bar" "baz"] row))
+  (zipmap fields row))
+
+
+(defn fix-premium
+  [model]
+  (let [{:keys [start finish]} model]
+    (if (or start finish)
+      (-> model
+          (dissoc :start :finish)
+          (assoc :premium {:start start
+                           :finish finish}))
+      model)))
 
 
 (defn rows->models
@@ -230,7 +507,9 @@
   (->> rows
        (sort-by (comp - peek))
        (take limit)
-       (map (partial ->model fields))))
+       (map (partial ->model fields))
+       ;; todo make it conditional
+       (map fix-premium)))
 
 
 (defn _handler
@@ -252,8 +531,7 @@
         rows (db/query query args)
 
         ;; todo limit nil
-        models (rows->models rows fields limit)
-        ]
+        models (rows->models rows fields limit)]
 
     {:status 200
      :body {:accounts models}}))
