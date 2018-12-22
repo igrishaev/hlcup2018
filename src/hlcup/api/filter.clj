@@ -6,17 +6,25 @@
 
 
 (def scope-base
-  '{:find
-    [?id ?email]
-
+  '{:find []
     :in [$]
-
-    :where
-    [[?a :account/id ?id]
-     [?a :account/email ?email]]
-
+    :where []
     :args []
     :fields [:id :email]})
+
+
+(defn add-defaults
+  [scope]
+  (-> scope
+      (update :where conj
+              '[?a :account/email ?email]
+              '[?a :account/id ?id])
+
+      (update :fields conj
+              :email :id)
+
+      (update :find conj
+              '?email '?id)))
 
 
 (defmulti apply-predicate
@@ -213,16 +221,15 @@
 
 (defn ->model
   [fields row]
-  (zipmap fields row))
+  (zipmap ["foo" "bar" "baz"] row))
 
 
 (defn rows->models
   [rows fields limit]
   ;; todo use transducers
   (->> rows
-       (sort-by (comp - first))
+       (sort-by (comp - peek))
        (take limit)
-       #_
        (map (partial ->model fields))))
 
 
@@ -234,19 +241,22 @@
 
         params (dissoc params :limit :query_id)
 
-        scope (params->scope params)
+        scope (-> params params->scope add-defaults)
         {:keys [args fields]} scope
 
         query (dissoc scope :args :fields)
 
-        _ (clojure.pprint/pprint query)
-        _ (clojure.pprint/pprint args)
+        ;; _ (clojure.pprint/pprint query)
+        ;; _ (clojure.pprint/pprint args)
 
         rows (db/query query args)
+
+        ;; todo limit nil
+        models (rows->models rows fields limit)
         ]
 
     {:status 200
-     :body {:accounts rows}}))
+     :body {:accounts models}}))
 
 
 (def handler

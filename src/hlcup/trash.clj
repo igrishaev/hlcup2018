@@ -156,8 +156,10 @@
    '[:find ?id
      :in $
      :where
-     [?a :account/id ?id]
-     [?a :account/interests "50 Cent"]]
+
+     [?a :account/interests "50 Cent"]
+     [?a :account/interests "Целоваться"]
+     [?a :account/id ?id]]
 
    (d/db conn)))
 
@@ -169,13 +171,14 @@
    '[:find ?id
      :in $ ?iii
      :where
-     [?a :account/id ?id]
+
      [(datomic.api/entity $ ?a) ?e]
      [(:account/interests ?e) ?interests]
-     [(clojure.set/superset? ?interests ?iii)]]
+     [(clojure.set/superset? ?interests ?iii)]
+     [?a :account/id ?id]]
 
    (d/db conn)
-   #{"50 Cent"}
+   #{"50 Cent" "Целоваться"}
 
 
    ))
