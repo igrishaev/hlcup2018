@@ -229,3 +229,124 @@
    #{"50 Cent" "Выходные" "Кинокифильмы" "Солнце" "Целоваться"}
 
    ))
+
+
+
+(ns hlcup.middleware
+
+  (:require
+   [hlcup.error :as e]
+
+   [manifold.deferred  :as d]
+   [cheshire.core      :as json]
+   [clojure.walk       :refer [keywordize-keys]]
+
+   [clojure.spec.alpha :as s]))
+
+
+(defn wrap-keywordize
+  "Transform headers and params into keywords"
+  [handler]
+  (fn [request]
+    (d/chain
+     (update request :params keywordize-keys)
+     handler)))
+
+
+(defn jsonify
+  [body]
+  (-> body
+      json/generate-string
+      (.getBytes "utf-8")))
+
+
+(defn wrap-json-response
+  "Turns a data structure response into a JSON-encoded one."
+  [handler]
+  (fn [request]
+
+    (d/chain
+     request
+     handler
+
+     (fn [response]
+
+       (if (-> response :body coll?)
+
+         (-> response
+             (update :body jsonify)
+             (assoc-in [:headers :content-type]
+                       "application/json; charset=utf-8"))
+
+         response)))))
+
+
+(def invalid :clojure.spec.alpha/invalid)
+
+
+(defn validate-request
+  [request]
+
+  (let [{:keys [params handler]} request
+        spec (s/get-spec handler)]
+
+    (if spec
+
+      (let [result (s/conform spec params)
+            valid? (not= result invalid)]
+
+        (if valid?
+          (assoc request :params result)
+          (e/error 400 "wrong input params")))
+
+      request)))
+
+
+(defn wrap-spec-in
+  "
+  Validates the incoming request with a spec.
+  We try to take a spec that `:handler` field
+  is referencing to.
+  "
+  [handler]
+  (fn [request]
+    (d/chain
+     request
+     validate-request
+     handler)))
+
+
+
+(ns hlcup.error
+  (:require
+   [manifold.deferred :as d]))
+
+
+(defn error
+  [status template & args]
+  (throw (ex-info
+          (apply format template args)
+          {:status status})))
+
+
+(defn exception->response
+  [^Exception e]
+  (let [data (ex-data e)
+        {:keys [status]} data
+        message (.getMessage e)]
+    {:status (or status 500)
+     :body message}))
+
+
+(defn wrap-exception
+  "Top-level wrapper that handles and reports any errors."
+  [handler]
+  (fn [request]
+
+    (-> request
+
+        (d/chain handler)
+
+        (d/catch
+            (fn [^Exception e]
+              (exception->response e))))))

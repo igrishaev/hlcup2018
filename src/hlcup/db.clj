@@ -63,5 +63,7 @@
 
 
 (defn query
-  [params]
-  (d/query (update params :args cons (d/db conn))))
+  [query args]
+  (d/query
+   {:query query
+    :args (cons (d/db conn) args)}))

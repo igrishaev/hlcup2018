@@ -11,12 +11,10 @@
 
                  [aleph "0.4.6"]
                  [ring/ring-core "1.7.1"]
-                 [bidi "2.1.4"]
-
+                 [compojure "1.6.1"]
+                 [ring/ring-json "0.4.0"]
                  [mount "0.1.15"]
-
                  [cheshire "5.8.1"]
-
                  [com.datomic/datomic-free "0.9.5697"]]
 
   :main ^:skip-aot hlcup.core

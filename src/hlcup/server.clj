@@ -2,12 +2,10 @@
   (:import java.io.Closeable)
 
   (:require
-
-   [hlcup.route :as route]
+   [hlcup.app :refer [app]]
 
    [aleph.http  :as http]
    [aleph.netty :as netty]
-
    [mount.core :as mount]))
 
 
@@ -16,12 +14,8 @@
 
 (defn server-start
   []
-
   (http/start-server
-
-   (-> route/dispatch
-       route/wrap-route)
-
+   #'app
    {:port 8088}))
 
 

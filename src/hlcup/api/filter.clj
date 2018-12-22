@@ -1,100 +1,8 @@
-(ns hlcup.api-filter
+(ns hlcup.api.filter
   (:require
-   [hlcup.db :as db]
-
-   [clojure.spec.alpha :as s]
-   [clojure.string :as str]))
-
-
-(def invalid :clojure.spec.alpha/invalid)
-
-
-
-(s/def ::null
-  (s/and
-   #{"0" "1"}
-   (s/conformer
-    (fn [value]
-      (case value
-        "0" 0
-        "1" 1
-        invalid)))))
-
-
-(s/def ::fname_null ::null)
-
-(s/def ::string string?)
-
-(s/def ::fname_eq ::string)
-
-
-(s/def ::string-split
-  (s/and
-   string?
-   (s/conformer
-    (fn [value]
-      (str/split value #",")))))
-
-
-(s/def ::fname_any ::string-split)
-
-(s/def ::fname_null ::null)
-
-
-(s/def ::interests_contains ::string-split)
-(s/def ::interests_any ::string-split)
-
-
-(defn ->int
-  [^String value]
-  (Integer/parseInt value))
-
-
-(defmacro with-invalid
-  [& body]
-  `(try
-     ~@body
-     (catch Exception e#
-       :clojure.spec.alpha/invalid)))
-
-
-
-(s/def ::int-split
-  (s/and
-   string?
-   (s/conformer
-    (fn [value]
-      (with-invalid
-        (mapv ->int (str/split value #",")))))))
-
-
-(s/def ::likes_contains ::int-split)
-
-
-(s/def ::one (partial = "1"))
-
-(s/def ::premium_now ::one)
-(s/def ::premium_null ::null)
-
-
-(defmacro only-keys
-  [& {:keys [req req-un opt opt-un] :as args}]
-  `(s/merge (s/keys ~@(apply concat (vec args)))
-            (s/map-of ~(set (concat req
-                                    (map (comp keyword name) req-un)
-                                    opt
-                                    (map (comp keyword name) opt-un)))
-                      any?)))
-
-
-(s/def ::params
-  (only-keys :opt-un [::query_id
-                      ::limit
-
-                      ::sex_eq
-
-                      ])
-  )
+   [hlcup.spec.filter]
+   [hlcup.middleware :refer [wrap-spec]]
+   [hlcup.db :as db]))
 
 
 (def scope-base
@@ -117,6 +25,19 @@
 
 
 (defmethod apply-predicate
+  :default
+  [scope _ _]
+  scope)
+
+
+(defn ->sex
+  [value]
+  (case value
+    "m" :sex/m
+    "f" :sex/f))
+
+
+(defmethod apply-predicate
   :sex_eq
   [scope _ value]
   (-> scope
@@ -124,7 +45,7 @@
       (update :fields conj :sex)
       (update :find conj '?sex)
       (update :in conj '?sex)
-      (update :args conj value)))
+      (update :args conj (->sex value))))
 
 
 (defmethod apply-predicate
@@ -301,25 +222,33 @@
   (->> rows
        (sort-by (comp - first))
        (take limit)
+       #_
        (map (partial ->model fields))))
 
 
-(defn handler
+(defn _handler
   [request]
 
   (let [{:keys [params]} request
-        spec ::params ;; todo
-
         {:keys [limit]} params
+
+        params (dissoc params :limit :query_id)
 
         scope (params->scope params)
         {:keys [args fields]} scope
 
         query (dissoc scope :args :fields)
 
-        rows (db/query {:query query :args args})
+        _ (clojure.pprint/pprint query)
+        _ (clojure.pprint/pprint args)
 
-        models (rows->models rows fields limit)]
+        rows (db/query query args)
+        ]
 
     {:status 200
-     :body {:accounts models}}))
+     :body {:accounts rows}}))
+
+
+(def handler
+  (-> _handler
+      (wrap-spec :hlcup.spec.filter/params)))
