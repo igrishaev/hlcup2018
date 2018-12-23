@@ -1,6 +1,6 @@
 (ns hlcup.api.filter
   (:require
-   [hlcup.spec.filter]
+   [hlcup.spec]
    [hlcup.middleware :refer [wrap-spec]]
    [hlcup.db :as db]
 
@@ -23,7 +23,7 @@
     :fields []})
 
 
-(defn add-defaults
+(defn apply-defaults
   [scope]
   ;; todo check email
   (-> scope
@@ -60,8 +60,9 @@
   (-> scope
       (push :where '[?a :account/sex ?sex])
       (push :fields :sex)
-      (push :find '?sex)
-      (push :args value)))
+      (push :find  '?sex)
+      (push :in    '?sex)
+      (push :args  value)))
 
 ;;
 
@@ -352,6 +353,7 @@
       (push :args  value)))
 
 
+;; todo: compare timestamps; calc low/high
 ;; todo types
 (defn timestamp-year?
   [timestamp year]
@@ -520,7 +522,7 @@
 
         params (dissoc params :limit :query_id)
 
-        scope (-> params params->scope add-defaults)
+        scope (-> params params->scope apply-defaults)
         {:keys [args fields]} scope
 
         query (dissoc scope :args :fields)
@@ -539,4 +541,4 @@
 
 (def handler
   (-> _handler
-      (wrap-spec :hlcup.spec.filter/params)))
+      (wrap-spec ::params)))

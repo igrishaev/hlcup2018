@@ -1,4 +1,4 @@
-(ns hlcup.spec.filter
+(ns hlcup.spec
   (:require
    [clojure.spec.alpha :as s]
    [clojure.string :as str]))
@@ -16,7 +16,7 @@
   `(try
      ~@body
      (catch Exception e#
-       :clojure.spec.alpha/invalid)))
+       invalid)))
 
 
 (s/def ::null
@@ -58,7 +58,7 @@
         (mapv ->int (str/split value #",")))))))
 
 
-(s/def ::one (partial = "1"))
+(s/def ::is-one (partial = "1"))
 
 
 (defmacro only-keys
@@ -163,12 +163,12 @@
 
 ;;
 
-(s/def ::premium_now  ::one)
+(s/def ::premium_now  ::is-one)
 (s/def ::premium_null ::null)
 
 ;;
 
-(s/def ::params
+(s/def :hlcup.api.filter/params
   (only-keys :opt-un [::query_id
                       ::limit
 
@@ -210,3 +210,45 @@
 
                       ::premium_now
                       ::premium_null]))
+
+
+(s/def ::one
+  (s/conformer
+   (fn [value]
+     (case value
+       "-1" -1
+       "1" 1
+       invalid))))
+
+
+(s/def ::order ::one)
+(s/def ::sex       ::->sex)
+(s/def ::email     ::string)
+(s/def ::status    ::->status)
+(s/def ::fname     ::string)
+(s/def ::sname     ::string)
+(s/def ::phone     ::string)
+(s/def ::country   ::string)
+(s/def ::city      ::string)
+(s/def ::joined    ::->int)
+(s/def ::birth     ::->int)
+(s/def ::interests ::string)
+(s/def ::likes     ::->int)
+
+
+(s/def :hlcup.api.group/params
+  (only-keys :opt-un [::query_id
+                      ::limit
+                      ::order
+
+                      ::sex
+                      ::email
+                      ::status
+                      ::fname
+                      ::sname
+                      ::phone
+                      ::country
+                      ::city
+                      ::birth
+                      ::interests
+                      ::likes]))
