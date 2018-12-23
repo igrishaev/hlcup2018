@@ -12,17 +12,26 @@
 (declare server)
 
 
+(defmacro with-sleep
+  [timeout & body]
+  `(let [result# (do ~@body)]
+     (Thread/sleep ~timeout)
+     result#))
+
+
 (defn server-start
   []
-  (http/start-server
-   #'app
-   {:port 8088}))
+  (with-sleep 3000
+    (http/start-server
+     #'app
+     {:port 8088})))
 
 
 (defn server-stop
   []
-  (.close ^Closeable server)
-  (netty/wait-for-close server))
+  (with-sleep 3000
+    (.close ^Closeable server)
+    (netty/wait-for-close server)))
 
 
 (mount/defstate

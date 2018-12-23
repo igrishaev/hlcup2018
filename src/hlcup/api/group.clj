@@ -23,52 +23,102 @@
     field))
 
 
+;; todo indexOf reflect
+(defn item-found?
+  [^clojure.lang.PersistentVector vector item]
+  (-> vector (.indexOf item) (>= 0)))
+
+
 (defmethod apply-group
   "sex"
   [scope _]
-  (-> scope
-      (push :where '[?a :account/sex ?sex])
-      (push :fields :sex)
-      (push :find '?sex)))
+
+  (let [where '[?a :account/sex ?sex]
+        found? (-> scope :where (item-found? where))]
+
+    (cond-> scope
+
+      true
+      (->
+       (push :fields :sex)
+       (push :find '?sex))
+
+      (not found?)
+      (push :where where))))
 
 
 (defmethod apply-group
   "status"
   [scope _]
-  (-> scope
-      (push :where '[?a :account/status ?status])
-      (push :fields :status)
-      (push :find '?status)))
+
+  (let [where '[?a :account/status ?status]
+        found? (-> scope :where (item-found? where))]
+
+    (cond-> scope
+
+      true
+      (->
+       (push :fields :status)
+       (push :find '?status))
+
+      (not found?)
+      (push :where where))))
 
 
 (defmethod apply-group
   "interests"
   [scope _]
-  (-> scope
-      (push :where '[?a :account/interests ?interest])
-      (push :fields :interests)
-      (push :find '?interest)))
 
+  (let [where '[?a :account/interests ?interests]
+        found? (-> scope :where (item-found? where))]
+
+    (cond-> scope
+
+      true
+      (->
+       (push :fields :interests)
+       (push :find '?interests))
+
+      (not found?)
+      (push :where where))))
 
 
 (defmethod apply-group
   "country"
   [scope _]
-  (-> scope
+
+  (let [where '[?a :account/country ?country]
+        found? (-> scope :where (item-found? where))]
+
+    (cond-> scope
+
+      true
+      (->
+       (push :fields :country)
+       (push :find '?country))
+
+      (not found?)
       (push :where
-            '[(get-else $ ?a :account/country "N/A") ?country])
-      (push :fields :country)
-      (push :find '?country)))
+            '[(get-else $ ?a :account/country "N/A") ?country]))))
 
 
 (defmethod apply-group
   "city"
   [scope _]
-  (-> scope
+
+  (let [where '[?a :account/city ?city]
+        found? (-> scope :where (item-found? where))]
+
+    (cond-> scope
+
+      true
+      (->
+       (push :fields :city)
+       (push :find   '?city))
+
+      (not found?)
       (push :where
-            '[(get-else $ ?a :account/city "N/A") ?city])
-      (push :fields :city)
-      (push :find '?city)))
+            '[(get-else $ ?a :account/city "N/A") ?city]))))
 
 
 (defmulti apply-predicate
@@ -82,7 +132,7 @@
   (reduce
    (fn [scope field]
      (apply-group scope field))
-   scope-base
+   scope
    value))
 
 
@@ -180,25 +230,54 @@
       (push :fields :count)))
 
 
-(defn params->scope
-  [params]
-
+(defn apply-predicates
+  [scope params]
   (reduce-kv
    (fn [scope predicate value]
      (apply-predicate scope predicate value))
-   scope-base
-   params))
+   scope
+   (dissoc params :keys)))
+
+
+(defn apply-keys
+  [scope params]
+  (let [{:keys [keys]} params]
+    (apply-predicate scope :keys keys)))
+
+
+(defn params->scope
+  [params]
+  (-> scope-base
+      (apply-predicates params)
+      (apply-keys params)
+      (apply-defaults)))
+
+
+(defn ->model
+  [fields row]
+  (zipmap fields row))
+
+
+;; todo limit nil
+;; todo order direction
+;; todo transducers
+(defn rows->models
+  [rows fields order limit]
+  (->> rows
+       (sort-by (comp - peek))
+       (take 20)
+       (map (partial ->model fields))))
 
 
 (defn _handler
   [request]
 
   (let [{:keys [params]} request
-        {:keys [limit]} params
+        {:keys [limit order]} params
 
         params (dissoc params :limit :order :query_id)
 
-        scope (-> params params->scope apply-defaults)
+        scope (params->scope params)
         {:keys [args fields]} scope
 
         query (dissoc scope :args :fields)
@@ -209,15 +288,11 @@
         rows (db/query query args)
 
         ;; todo limit nil
-        ;; models (rows->models rows fields limit)
 
-        ]
+        models (rows->models rows fields order limit)]
 
     {:status 200
-     :body rows
-
-     #_
-     {:accounts models}}))
+     :body {:groups models}}))
 
 
 (def handler

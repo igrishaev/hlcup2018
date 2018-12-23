@@ -1,6 +1,9 @@
 (ns hlcup.app
   (:require
-   [hlcup.api.filter]
+
+   hlcup.api.filter
+   hlcup.api.group
+
    [hlcup.error :as error]
 
    [compojure.core :refer [defroutes GET POST]]
@@ -19,6 +22,9 @@
 
   (GET "/accounts/filter"
        request (hlcup.api.filter/handler request))
+
+  (GET "/accounts/group"
+       request (hlcup.api.group/handler request))
 
   (fn [_]
     {:status 404

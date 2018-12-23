@@ -1,7 +1,8 @@
 (ns hlcup.spec
   (:require
    [clojure.spec.alpha :as s]
-   [clojure.string :as str]))
+   [clojure.string :as str]
+   [clojure.set :as set]))
 
 
 ;;
@@ -236,19 +237,32 @@
 (s/def ::likes     ::->int)
 
 
-(s/def :hlcup.api.group/params
-  (only-keys :opt-un [::query_id
-                      ::limit
-                      ::order
+(def keys-enum
+  #{"sex" "status" "interests" "country" "city"})
 
-                      ::sex
-                      ::email
-                      ::status
-                      ::fname
-                      ::sname
-                      ::phone
-                      ::country
-                      ::city
-                      ::birth
-                      ::interests
-                      ::likes]))
+(s/def ::keys
+  (s/and ::string-split
+         (fn [values]
+           (set/subset? (set values) keys-enum))))
+
+
+(s/def :hlcup.api.group/params
+  (only-keys
+
+   :req-un [::keys]
+
+   :opt-un [::query_id
+            ::limit
+            ::order
+
+            ::sex
+            ::email
+            ::status
+            ::fname
+            ::sname
+            ::phone
+            ::country
+            ::city
+            ::birth
+            ::interests
+            ::likes]))
