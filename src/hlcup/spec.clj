@@ -266,3 +266,26 @@
             ::birth
             ::interests
             ::likes]))
+
+
+(s/def ::id ::->int)
+
+
+(s/def :hlcup.api.recommend/params
+  (only-keys
+   :req-un [::limit
+            ::id]
+
+   :opt-un [::query_id
+            ::country
+            ::city]))
+
+
+(s/def :hlcup.api.suggest/params
+  (only-keys
+   :req-un [::limit
+            ::id]
+
+   :opt-un [::query_id
+            ::country
+            ::city]))

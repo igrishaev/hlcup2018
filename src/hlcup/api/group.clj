@@ -258,6 +258,7 @@
   (zipmap fields row))
 
 
+;; todo N/A to nil
 ;; todo limit nil
 ;; todo order direction
 ;; todo transducers

@@ -3,6 +3,8 @@
 
    hlcup.api.filter
    hlcup.api.group
+   hlcup.api.recommend
+   hlcup.api.suggest
 
    [hlcup.error :as error]
 
@@ -25,6 +27,12 @@
 
   (GET "/accounts/group"
        request (hlcup.api.group/handler request))
+
+  (GET "/accounts/:id/recommend"
+       [id :as request] (hlcup.api.recommend/handler request))
+
+  (GET "/accounts/:id/suggest"
+       [id :as request] (hlcup.api.suggest/handler request))
 
   (fn [_]
     {:status 404

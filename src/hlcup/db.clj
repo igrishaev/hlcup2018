@@ -2,6 +2,8 @@
   (:import datomic.peer.LocalConnection)
 
   (:require
+   hlcup.db.func
+
    [hlcup.load :as load]
 
    [datomic.api :as d]
@@ -62,8 +64,104 @@
   (mount/stop #'conn))
 
 
+(defn pull
+  [pattern ref]
+  (d/pull (d/db conn) pattern ref))
+
+
 (defn query
   [query args]
   (d/query
    {:query query
     :args (cons (d/db conn) args)}))
+
+
+;;;;;;;;
+
+
+(defn bar
+  []
+
+  (d/q '[:find [?target ...]
+         :in $ ?a
+         :where
+         [?a :account/likes ?like]
+         [?like :like/id ?target]]
+       (d/db conn)
+       [:account/id 42]))
+
+
+(defn xxx
+  [accounts timestamps]
+
+  (println accounts)
+
+  #_
+  (zipmap accounts timestamps))
+
+(defn baz
+  []
+
+  (d/q '[:find ?a ?target ?ts ?diff
+         :in $ [?target ...] ?sex ?mapping
+         :where
+         [?like :like/id ?target]
+
+         [?a :account/likes ?like]
+         [?a :account/sex ?sex]
+
+         [?like :like/ts ?ts]
+
+         [(clojure.core/get ?mapping ?a -1) ?diff]
+
+         ]
+       (d/db conn)
+       _targets
+       :sex/f
+       {}
+
+       ))
+
+
+(defn foo []
+
+  (d/query {:query '{:find
+
+                     [?id
+                      ?status
+                      (count ?interest)
+                      ?diff
+                      ?email
+                      ?fname
+                      ?sname
+                      ?birth
+
+                      ?city
+
+                      ]
+
+                     :in [$ ?_sex [?_interest ...] ?_birth ?city]
+                     :where
+                     [
+
+
+                      [?a :account/interests ?_interest]
+                      [?a :account/sex ?_sex]
+
+
+
+                      ;; [?a :account/country ?country]
+
+                      [?a :account/id     ?id]
+                      [?a :account/email  ?email]
+                      [?a :account/status ?status]
+                      [?a :account/fname  ?fname]
+                      [?a :account/sname  ?sname]
+                      [?a :account/birth  ?birth]
+
+                      [(hlcup.db.func/dist ?birth ?_birth) ?diff]
+
+                      ]
+
+                     }
+            :args [(d/db conn) :sex/m ["50 Cent" "Целоваться"] 444444 "Ньюгорск"]}))

@@ -23,19 +23,24 @@
     :fields []})
 
 
+(defmacro push
+  [vector key & values]
+  `(update ~vector ~key conj ~@values))
+
+
 (defn apply-defaults
   [scope]
   ;; todo check email
   (-> scope
-      (update :where conj
-              '[?a :account/email ?email]
-              '[?a :account/id ?id])
+      (push :where
+            '[?a :account/email ?email]
+            '[?a :account/id ?id])
 
-      (update :fields conj
-              :email :id)
+      (push :fields
+            :email :id)
 
-      (update :find conj
-              '?email '?id)))
+      (push :find
+            '?email '?id)))
 
 
 (defmulti apply-predicate
@@ -43,11 +48,6 @@
     predicate))
 
 ;;
-
-(defmacro push
-  [vector key & values]
-  `(update ~vector ~key conj ~@values))
-
 
 (defmacro append
   [vector key values]
