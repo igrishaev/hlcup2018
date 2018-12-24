@@ -28,7 +28,7 @@
   (d/transact _conn (read-edn "schema.edn")))
 
 
-(def uri "datomic:mem://hlcup5")
+(def uri "datomic:mem://hlcup6")
 
 
 (defn db-init
@@ -99,6 +99,7 @@
   #_
   (zipmap accounts timestamps))
 
+#_
 (defn baz
   []
 

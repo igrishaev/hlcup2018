@@ -264,6 +264,7 @@
             ::country
             ::city
             ::birth
+            ::joined
             ::interests
             ::likes]))
 

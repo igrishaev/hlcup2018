@@ -1,6 +1,7 @@
 (ns hlcup.api.recommend
   (:require
    [hlcup.spec]
+   [hlcup.error :as error]
    [hlcup.middleware :refer [wrap-spec]]
    [hlcup.db :as db]))
 
@@ -25,8 +26,8 @@
             '[?a :account/id     ?id]
             '[?a :account/email  ?email]
             '[?a :account/status ?status]
-            '[?a :account/fname  ?fname]
-            '[?a :account/sname  ?sname])
+            '[(get-else $ ?a :account/fname "N/A") ?fname]
+            '[(get-else $ ?a :account/sname "N/A") ?sname])
 
       (push :find
             '?id
@@ -148,7 +149,7 @@
   (case id
     17592186045419 "свободны"
     17592186045420 "заняты"
-    17592186045421 "все сложно"))
+    17592186045421 "всё сложно"))
 
 
 (defn row->model
@@ -164,12 +165,16 @@
          sname
          ] row]
 
-    {:id id
-     :birth birth
-     :email email
-     :sname sname
-     :fname fname
-     :status (id->status status)}))
+    (cond-> {:id id
+             :birth birth
+             :email email
+             :status (id->status status)}
+
+      (not= fname "N/A")
+      (assoc :fname fname)
+
+      (not= sname "N/A")
+      (assoc :sname sname))))
 
 
 (defn rows->models
@@ -202,6 +207,9 @@
 
                          [:account/id id])
 
+        _ (when-not account
+            (error/error 404 ""))
+
         interests (:account/interests account)
         birth     (:account/sex account)
         sex       (-> account :account/sex :db/ident)
@@ -218,8 +226,8 @@
 
         query (dissoc scope :args :fields)
 
-        ;; _ (clojure.pprint/pprint query)
-        ;; _ (clojure.pprint/pprint args)
+        _ (clojure.pprint/pprint query)
+        _ (clojure.pprint/pprint args)
 
         rows (db/query query args)
 

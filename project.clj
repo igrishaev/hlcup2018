@@ -16,7 +16,13 @@
                  [mount "0.1.15"]
                  [cheshire "5.8.1"]
                  [clj-time "0.15.0"]
-                 [com.datomic/datomic-free "0.9.5697"]]
+                 [com.datomic/datomic-free "0.9.5697"]
+
+
+                 [org.clojure/data.csv "0.1.4"]
+                 [clj-http "3.9.1"]
+
+                 ]
 
   :main ^:skip-aot hlcup.core
 

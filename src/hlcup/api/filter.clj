@@ -128,15 +128,28 @@
       (push :args   value)))
 
 
+(defn status-opposite
+  [status]
+  (disj #{:status/free
+          :status/busy
+          :status/complex}
+        status))
+
+
 (defmethod apply-predicate
   :status_neq
   [scope _ value]
   ;; todo maybe or by two other
+
   (-> scope
       (push :fields :status)
-      (push :where  '(not [?a :account/status ?status]))
+
+      (push :where
+            '(not [?a :account/status ?_status])
+            '[?a :account/status ?status])
+
       (push :find   '?status)
-      (push :in     '?status)
+      (push :in     '?_status)
       (push :args   value)))
 
 ;;
@@ -210,11 +223,11 @@
   [scope _ value]
   (condp = value
 
-    0
+    1
     (-> scope
         (push :where '[(missing? $ ?a :account/sname)]))
 
-    1
+    0
     (-> scope
         (push :fields :sname)
         (push :where  '[?a :account/sname ?sname])
@@ -315,11 +328,11 @@
   [scope _ value]
   (condp = value
 
-    0
+    1
     (-> scope
         (push :where '[(missing? $ ?a :account/city)]))
 
-    1
+    0
     (-> scope
         (push :fields :city)
         (push :where  '[?a :account/city ?city])
@@ -362,6 +375,10 @@
       coerce/from-long
       time/year
       (= year)))
+
+
+
+
 
 
 (defmethod apply-predicate
@@ -487,9 +504,30 @@
 
 
 
+(defn id->status
+  [id]
+  (case id
+    17592186045419 "свободны"
+    17592186045420 "заняты"
+    17592186045421 "всё сложно"
+    :status/free "свободны"
+    :status/busy "заняты"
+    :status/complex "всё сложно"))
+
+
 (defn ->model
   [fields row]
-  (zipmap fields row))
+  (let [model (zipmap fields row)
+        {:keys [sex status]} model]
+    (cond-> model
+
+      ;; todo status names
+
+      status
+      (update :status id->status)
+
+      sex
+      (update :sex name))))
 
 
 (defn fix-premium
@@ -527,8 +565,8 @@
 
         query (dissoc scope :args :fields)
 
-        ;; _ (clojure.pprint/pprint query)
-        ;; _ (clojure.pprint/pprint args)
+        _ (clojure.pprint/pprint query)
+        _ (clojure.pprint/pprint args)
 
         rows (db/query query args)
 

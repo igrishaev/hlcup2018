@@ -1,8 +1,14 @@
 (ns hlcup.api.group
   (:require
    hlcup.spec
+   [hlcup.time :as time]
    [hlcup.middleware :refer [wrap-spec]]
    [hlcup.db :as db]))
+
+
+(defn stub
+  [name]
+  (gensym (str "?_" name "_")))
 
 
 (defmacro push
@@ -202,11 +208,22 @@
   (apply-filter scope :birth value))
 
 
-;; todo year
+;; todo store year
 (defmethod apply-predicate
   :joined
   [scope _ value]
-  (apply-filter scope :joined value))
+  (let [[ts1 ts2] (time/ts->range value)]
+    (-> scope
+        (push :where
+              '[?a :account/joined ?joined]
+              '[(<= ?joined1 ?joined )]
+              '[(<= ?joined  ?joined2)])
+
+        (push :in
+              '?joined1 '?joined2)
+
+        (push :args
+              ts1 ts2))))
 
 
 ;; todo single
@@ -255,7 +272,27 @@
 
 (defn ->model
   [fields row]
-  (zipmap fields row))
+  (let [model (zipmap fields row)
+        {:keys [country]} model]
+
+    (cond-> model
+      (= country "N/A")
+      (assoc :country nil))))
+
+
+(defn sorter
+  [row]
+  [(peek row) (first row)])
+
+
+;; todo improve
+(defn apply-order
+  [order rows]
+
+  (cond-> (sort-by sorter rows)
+
+    (= order -1)
+    (reverse)))
 
 
 ;; todo N/A to nil
@@ -265,8 +302,8 @@
 (defn rows->models
   [rows fields order limit]
   (->> rows
-       (sort-by (comp - peek))
-       (take 20)
+       (apply-order order)
+       (take limit)
        (map (partial ->model fields))))
 
 
@@ -283,8 +320,8 @@
 
         query (dissoc scope :args :fields)
 
-        ;; _ (clojure.pprint/pprint query)
-        ;; _ (clojure.pprint/pprint args)
+        _ (clojure.pprint/pprint query)
+        _ (clojure.pprint/pprint args)
 
         rows (db/query query args)
 

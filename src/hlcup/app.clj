@@ -22,21 +22,21 @@
 
 (defroutes app-naked
 
-  (GET "/accounts/filter"
+  (GET "/accounts/filter/"
        request (hlcup.api.filter/handler request))
 
-  (GET "/accounts/group"
+  (GET "/accounts/group/"
        request (hlcup.api.group/handler request))
 
-  (GET "/accounts/:id/recommend"
+  (GET "/accounts/:id/recommend/"
        [id :as request] (hlcup.api.recommend/handler request))
 
-  (GET "/accounts/:id/suggest"
+  (GET "/accounts/:id/suggest/"
        [id :as request] (hlcup.api.suggest/handler request))
 
   (fn [_]
     {:status 404
-     :body "not found"}))
+     :body nil}))
 
 
 (def app

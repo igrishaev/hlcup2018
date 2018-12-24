@@ -5,8 +5,8 @@
 
 
  {:db/ident       :status/free}
- {:db/ident       :status/busy}
  {:db/ident       :status/complex}
+ {:db/ident       :status/busy}
 
 
  {:db/ident       :account/id

@@ -271,10 +271,7 @@
         models (rows->models rows limit)]
 
     {:status 200
-     :body models
-
-     #_
-     {:accounts models}}))
+     :body {:accounts models}}))
 
 
 (def handler
