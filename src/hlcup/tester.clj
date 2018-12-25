@@ -15,7 +15,7 @@
     (doall
 
      (take
-      999999
+      100000
       (csv/read-csv reader :separator \tab))))
 
   )
@@ -40,7 +40,7 @@
 
     (let [[method uri status body] row]
 
-      (when (str/starts-with? uri "/accounts/filter")
+      (when (str/starts-with? uri "/accounts/group")
 
         (let [url (format "http://127.0.0.1:8088%s" uri)
               response (client/request {:method method

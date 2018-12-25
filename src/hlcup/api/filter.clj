@@ -121,7 +121,7 @@
       (push :fields :status)
       (push :where
             ;; todo might be slow
-            '[?a :account/status ?*status]
+            '[?a :account/status ?*status] ;; todo: drop that!
             '[?*status :db/ident ?status])
 
       (push :find   '?status)

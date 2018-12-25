@@ -298,15 +298,21 @@
 (defn ->model
   [fields row]
   (let [model (zipmap fields row)
-        {:keys [sex country]} model]
+        {:keys [sex country city status]} model]
 
     (cond-> model
 
       (= country "N/A")
-      (assoc :country nil)
+      (dissoc :country)
+
+      (= city "N/A")
+      (dissoc :city)
 
       sex
-      (update :sex db/tr))))
+      (update :sex db/tr)
+
+      status
+      (update :status db/tr))))
 
 
 (defn sorter
@@ -329,7 +335,7 @@
 ;; todo order direction
 ;; todo transducers
 (defn rows->models
-  [rows fields order limit]
+  [rows fields order limit keys]
   (->> rows
        (apply-order order)
        (take limit)
@@ -340,7 +346,7 @@
   [request]
 
   (let [{:keys [params]} request
-        {:keys [limit order]} params
+        {:keys [limit order keys]} params
 
         params (dissoc params :limit :order :query_id)
 
@@ -356,7 +362,7 @@
 
         ;; todo limit nil
 
-        models (rows->models rows fields order limit)]
+        models (rows->models rows fields order limit keys)]
 
     {:status 200
      :body {:groups models}}))
