@@ -11,11 +11,11 @@
 
 (defn load-data
   []
-  (with-open [reader (io/reader "/Users/ivan/Downloads/phase_1_get.answ")]
+  (with-open [reader (io/reader "/Users/ivan/Downloads/data/test_accounts_251218/answers/phase_1_get.answ")]
     (doall
 
      (take
-      30
+      9999999
       (csv/read-csv reader :separator \tab))))
 
   )
@@ -40,7 +40,7 @@
 
     (let [[method uri status body] row]
 
-      (when (str/starts-with? uri "/accounts/group")
+      (when (str/starts-with? uri "/accounts/filter")
 
         (let [url (format "http://127.0.0.1:8088%s" uri)
               response (client/request {:method method

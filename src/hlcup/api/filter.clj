@@ -119,7 +119,11 @@
   [scope _ value]
   (-> scope
       (push :fields :status)
-      (push :where  '[?a :account/status ?status])
+      (push :where
+            ;; todo might be slow
+            '[?a :account/status ?*status]
+            '[?*status :db/ident ?status])
+
       (push :find   '?status)
       (push :in     '?status)
       (push :args   value)))
@@ -143,7 +147,8 @@
 
       (push :where
             '(not [?a :account/status ?_status])
-            '[?a :account/status ?status])
+            '[?a :account/status ?*status]
+            '[?*status :db/ident ?status])
 
       (push :find   '?status)
       (push :in     '?_status)
@@ -443,6 +448,8 @@
 
 ;;
 
+(def NOW 1545699626)
+
 
 (defmethod apply-predicate
   :premium_now
@@ -467,7 +474,7 @@
             '?finish)
 
       (push :in '?now)
-      (push :args 1545613207)))
+      (push :args NOW)))
 
 
 (defmethod apply-predicate
@@ -509,9 +516,6 @@
 (defn id->status
   [id]
   (case id
-    17592186045419 "свободны"
-    17592186045420 "заняты"
-    17592186045421 "всё сложно"
     :status/free "свободны"
     :status/busy "заняты"
     :status/complex "всё сложно"))
@@ -567,8 +571,8 @@
 
         query (dissoc scope :args :fields)
 
-        ;; _ (clojure.pprint/pprint query)
-        ;; _ (clojure.pprint/pprint args)
+        _ (clojure.pprint/pprint query)
+        _ (clojure.pprint/pprint args)
 
         rows (db/query query args)
 

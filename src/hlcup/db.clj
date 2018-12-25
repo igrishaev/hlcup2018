@@ -28,7 +28,7 @@
   (d/transact _conn (read-edn "schema.edn")))
 
 
-(def uri "datomic:mem://hlcup6")
+(def uri "datomic:mem://hlcup7")
 
 
 (defn db-init
