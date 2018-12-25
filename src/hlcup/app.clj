@@ -44,4 +44,6 @@
       wrap-keyword-params
       wrap-params
       wrap-json-response
-      error/wrap-exception))
+      error/wrap-exception
+
+      ))

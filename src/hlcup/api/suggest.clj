@@ -1,6 +1,7 @@
 (ns hlcup.api.suggest
   (:require
    [hlcup.spec]
+   [hlcup.error :as error]
    [hlcup.middleware :refer [wrap-spec]]
    [hlcup.db :as db]))
 
@@ -19,74 +20,15 @@
   `(update ~vector ~key conj ~@values))
 
 
-(defn xxx
+(def sum (partial reduce + 0))
+
+
+(defn similarity
   [values]
-  (let [div (reduce + 0 values)]
-    (/ 1 div)
-    #_
-    (if (zero? div)
-      1
-      (/ 1 div))))
-
-
-(defn params->scope
-  [params]
-
-  (let [{:keys [targets
-                mapping
-                sex
-                id
-                country
-                city]} params]
-
-    (cond-> scope-base
-
-      true
-      (->
-       (push :where
-             '[?like :like/id ?target]
-             '[?a :account/likes ?like])
-
-       (push :in     '[?target ...])
-       (push :args   targets))
-
-      city
-      (->
-       (push :where  '[?a :account/city ?city])
-       (push :in     '?city)
-       (push :args   city))
-
-      country
-      (->
-       (push :where  '[?a :account/country ?country])
-       (push :in     '?country)
-       (push :args   country))
-
-      sex
-      (->
-       (push :where  '[?a :account/sex ?sex])
-       (push :in     '?sex)
-       (push :args   sex))
-
-      true
-      (->
-       (push :where
-             '[?like :like/ts ?ts1]
-             '[(clojure.core/get ?mapping ?target 0) ?ts2]
-             '[(hlcup.db.func/diff ?ts1 ?ts2) ?diff])
-
-       (push :in     '?mapping)
-       (push :args   mapping))
-
-      true
-      (->
-       (push :where '(not [?a :account/id ?id]))
-       (push :in  '?id)
-       (push :args id)
-
-       (push :find '?a
-             '(hlcup.api.suggest/xxx ?diff))
-       (push :with '?like)))))
+  (sum (for [v values]
+         (if (zero? v)
+           0
+           (/ 1 v)))))
 
 
 (defn map1
@@ -166,13 +108,11 @@
 
   (-> scope-base
 
-      (push :find '?target '(hlcup.api.suggest/xxx ?diff)
-
-            )
+      (push :find '?a '(hlcup.api.suggest/similarity ?diff))
 
       (push :where
             '[m1 ?target ?ts1]
-            '[m2 _ ?ts2 ?target]
+            '[m2 ?a ?ts2 ?target]
             '[(hlcup.db.func/diff ?ts1 ?ts2) ?diff])
 
       (push :in    'm1 'm2)
@@ -181,9 +121,9 @@
       db/scope))
 
 
-#_
+
 (defn map4
-  []
+  [_exclude m2 m3]
 
   (db/scope
 
@@ -198,10 +138,11 @@
              '?fname)
 
        (push :where
+             '[m2 ?a]
              '[?a :account/likes ?like]
              '[?like :like/id ?u]
-             '[(hlcup.api.suggest/yyy ?exclude ?u)]
-             '[(clojure.core/get ?acc->sim ?a) ?sim]
+             '[(hlcup.api.suggest/exclude ?exclude ?u)]
+             '[m3 ?a ?sim]
 
              '[?u :account/id ?id]
              '[?u :account/email ?email]
@@ -209,32 +150,8 @@
              '[(get-else $ ?u :account/sname "N/A") ?sname]
              '[(get-else $ ?u :account/fname "N/A") ?fname])
 
-       (push :args (keys acc->sim) (set exclude) acc->sim)
-       (push :in '[?a ...] '?exclude '?acc->sim)))
-
-
-  #_
-  (-> scope-base
-
-      (push :find '?target '(hlcup.api.suggest/xxx ?diff)
-
-            )
-
-      (push :where
-            '[m1 ?target ?ts1]
-            '[m2 _ ?ts2 ?target]
-            '[(hlcup.db.func/diff ?ts1 ?ts2) ?diff])
-
-      (push :in    'm1 'm2)
-      (push :args   m1 m2)
-
-      db/scope))
-
-
-(def _p '[:account/id
-          :account/email
-          :account/status
-          :accoount/fname])
+       (push :args (set _exclude) m2 m3)
+       (push :in '?exclude 'm2 'm3))))
 
 
 (defn row->model
@@ -282,40 +199,10 @@
   [:diff :id :interests])
 
 
-(defn yyy
+(defn exclude
   [values value]
   (not (contains? values value)))
 
-
-(defn get-target-likes
-  [acc->sim exclude]
-
-  (db/scope
-
-   (-> scope-base
-
-       (push :find
-             '?sim
-             '?id
-             '?email
-             '?status
-             '?sname
-             '?fname)
-
-       (push :where
-             '[?a :account/likes ?like]
-             '[?like :like/id ?u]
-             '[(hlcup.api.suggest/yyy ?exclude ?u)]
-             '[(clojure.core/get ?acc->sim ?a) ?sim]
-
-             '[?u :account/id ?id]
-             '[?u :account/email ?email]
-             '[?u :account/status ?status]
-             '[(get-else $ ?u :account/sname "N/A") ?sname]
-             '[(get-else $ ?u :account/fname "N/A") ?fname])
-
-       (push :args (keys acc->sim) (set exclude) acc->sim)
-       (push :in '[?a ...] '?exclude '?acc->sim))))
 
 
 (defn _handler
@@ -325,6 +212,10 @@
         {:keys [limit id city country]} params
 
         account (db/pull [:account/id id])
+
+        _ (when-not (:db/id account)
+            (error/error 404 ""))
+
         sex    (-> account :account/sex :db/ident)
 
         m1 (map1 {:id id})
@@ -339,28 +230,18 @@
         m2 (map2 m1 params)
         m3 (map3 m1 m2)
 
-        ;; m4 (map4 )
-
-        ;; scope (params->scope params)
-
-        ;; _ (clojure.pprint/pprint scope)
-
-        ;; rows (db/scope scope)
+        m4 (map4 targets m2 m3)
 
         ]
 
-    {:status 200
-     :body {:accounts m3}}
-
     #_
-    (if (seq rows)
+    {:status 200
+     :body m3}
 
-      (let [acc->sim (dissoc (into {} rows) a)
-            others (get-target-likes acc->sim targets)
-            models (rows->models others limit)]
+    (if (seq m4)
 
-        {:status 200
-         :body {:accounts models}})
+      {:status 200
+       :body {:accounts (rows->models m4 limit)}}
 
       {:status 200
        :body {:accounts []}})))
