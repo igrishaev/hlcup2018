@@ -77,6 +77,15 @@
    {:query query
     :args (cons (d/db conn) args)}))
 
+
+(defn scope
+  [scope]
+  (let [{:keys [args]} scope
+        query (select-keys scope [:find :in :with :where])]
+    (d/query
+     {:query query
+      :args (cons (d/db conn) args)})))
+
 ;; tr
 
 (declare tr)

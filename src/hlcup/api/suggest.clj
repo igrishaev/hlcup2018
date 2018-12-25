@@ -19,84 +19,11 @@
   `(update ~vector ~key conj ~@values))
 
 
-(defn apply-defaults
-  [scope]
-  (-> scope
-      (push :where
-            '[?a :account/id     ?id]
-            '[?a :account/email  ?email]
-            '[?a :account/status ?status]
-            '[?a :account/fname  ?fname]
-            '[?a :account/sname  ?sname])
-
-      (push :find
-            '?id
-            '?status
-            '(count ?interests)
-            '?email
-            '?fname
-            '?sname)))
-
-
-(defmulti apply-predicate
-  (fn [scope predicate value]
-    predicate))
-
-
-(defmethod apply-predicate
-  :interests
-  [scope _ value]
-  (-> scope
-      (push :where  '[?a :account/interests ?interests])
-      (push :in     '[?interests ...])
-      (push :args   value)))
-
-
-(defmethod apply-predicate
-  :birth
-  [scope _ value]
-  (-> scope
-      (push :find
-            '?birth '?diff)
-      (push :where
-            '[?a :account/birth ?birth]
-            '[(hlcup.db.func/diff ?birth ?_birth) ?diff])
-      (push :in     '?_birth)
-      (push :args   value)))
-
-
-(defmethod apply-predicate
-  :sex
-  [scope _ value]
-  (-> scope
-      (push :where  '[?a :account/sex ?sex])
-      (push :in     '?sex)
-      (push :args   value)))
-
-
-(defmethod apply-predicate
-  :country
-  [scope _ value]
-  (-> scope
-      (push :where  '[?a :account/country ?country])
-      (push :in     '?country)
-      (push :args   value)))
-
-
-(defmethod apply-predicate
-  :city
-  [scope _ value]
-  (-> scope
-      (push :where  '[?a :account/city ?city])
-      (push :in     '?city)
-      (push :args   value)))
-
-
-
-
 (defn xxx
   [values]
   (let [div (reduce + 0 values)]
+    (/ 1 div)
+    #_
     (if (zero? div)
       1
       (/ 1 div))))
@@ -108,6 +35,7 @@
   (let [{:keys [targets
                 mapping
                 sex
+                id
                 country
                 city]} params]
 
@@ -145,51 +73,162 @@
        (push :where
              '[?like :like/ts ?ts1]
              '[(clojure.core/get ?mapping ?target 0) ?ts2]
-             '[(hlcup.db.func/diff ?ts1 ?ts2) ?diff]
+             '[(hlcup.db.func/diff ?ts1 ?ts2) ?diff])
 
-
-             )
        (push :in     '?mapping)
        (push :args   mapping))
 
       true
       (->
-       (push :find '?a '(hlcup.api.suggest/xxx ?diff))
+       (push :where '(not [?a :account/id ?id]))
+       (push :in  '?id)
+       (push :args id)
+
+       (push :find '?a
+             '(hlcup.api.suggest/xxx ?diff))
        (push :with '?like)))))
 
 
-(defn row-sorter
-  [row]
-  (let [[_ ;; birth
-         diff
-         id
-         status
-         interests
-         _ ;;email
-         _ ;;fname
-         _ ;;sname
-         ] row]
+(defn map1
+  [params]
 
-    [;; prem
+  (let [{:keys [id]} params]
 
-     status
-     (- interests)
-     (- diff)
-     (- id)
+    (-> scope-base
 
-     ]
+        (push :find
+              '?target '(avg ?ts))
+        (push :where
+              '[?a :account/id ?id]
+              '[?a :account/likes ?like]
+              '[?like :like/id ?target]
+              '[?like :like/ts ?ts])
 
-    )
+        (push :in     '?id)
+        (push :args   id)
 
-  )
+        db/scope
+
+        )))
 
 
-(defn id->status
-  [id]
-  (case id
-    17592186045419 "свободны"
-    17592186045420 "заняты"
-    17592186045421 "все сложно"))
+(defn map2
+  [m1 params]
+
+  (let [{:keys [sex
+                country
+                city]} params]
+
+    (db/scope
+
+     (cond-> scope-base
+
+       true
+       (->
+        (push :where
+              '[m1 ?target]
+              '[?like :like/id ?target]
+              '[?a :account/likes ?like])
+
+        (push :in     'm1)
+        (push :args   m1))
+
+       city
+       (->
+        (push :where  '[?a :account/city ?city])
+        (push :in     '?city)
+        (push :args   city))
+
+       country
+       (->
+        (push :where  '[?a :account/country ?country])
+        (push :in     '?country)
+        (push :args   country))
+
+       sex
+       (->
+        (push :where  '[?a :account/sex ?sex])
+        (push :in     '?sex)
+        (push :args   sex))
+
+       true
+       (->
+        (push :where
+              '[?like :like/ts ?ts1]))
+
+       true
+       (->
+        (push :find  '?a '(avg ?ts1) '?target))))))
+
+
+(defn map3
+  [m1 m2]
+
+  (-> scope-base
+
+      (push :find '?target '(hlcup.api.suggest/xxx ?diff)
+
+            )
+
+      (push :where
+            '[m1 ?target ?ts1]
+            '[m2 _ ?ts2 ?target]
+            '[(hlcup.db.func/diff ?ts1 ?ts2) ?diff])
+
+      (push :in    'm1 'm2)
+      (push :args   m1 m2)
+
+      db/scope))
+
+
+#_
+(defn map4
+  []
+
+  (db/scope
+
+   (-> scope-base
+
+       (push :find
+             '?sim
+             '?id
+             '?email
+             '?status
+             '?sname
+             '?fname)
+
+       (push :where
+             '[?a :account/likes ?like]
+             '[?like :like/id ?u]
+             '[(hlcup.api.suggest/yyy ?exclude ?u)]
+             '[(clojure.core/get ?acc->sim ?a) ?sim]
+
+             '[?u :account/id ?id]
+             '[?u :account/email ?email]
+             '[?u :account/status ?status]
+             '[(get-else $ ?u :account/sname "N/A") ?sname]
+             '[(get-else $ ?u :account/fname "N/A") ?fname])
+
+       (push :args (keys acc->sim) (set exclude) acc->sim)
+       (push :in '[?a ...] '?exclude '?acc->sim)))
+
+
+  #_
+  (-> scope-base
+
+      (push :find '?target '(hlcup.api.suggest/xxx ?diff)
+
+            )
+
+      (push :where
+            '[m1 ?target ?ts1]
+            '[m2 _ ?ts2 ?target]
+            '[(hlcup.db.func/diff ?ts1 ?ts2) ?diff])
+
+      (push :in    'm1 'm2)
+      (push :args   m1 m2)
+
+      db/scope))
 
 
 (def _p '[:account/id
@@ -200,20 +239,34 @@
 
 (defn row->model
   [row]
-  (let [[account _] row
+  (let [[_
+         id
+         email
+         status
+         sname
+         fname] row]
 
-        e (db/pull _p account)]
+    (cond-> {:id id
+             :email email
+             :status (db/tr status)}
 
-    {:id (:account/id e)
-     :email (:account/email e)
-     :status (-> e :account/status :db/ident)
-     :fname (:accoount/fname e)}))
+      (not= sname "N/A")
+      (assoc :sname sname)
+
+      (not= fname "N/A")
+      (assoc :fname fname))))
+
+
+(defn sorter
+  [row]
+  (let [[sim id] row]
+    [(- sim) (- id)]))
 
 
 (defn rows->models
   [rows limit]
   (->> rows
-       (sort-by (comp - peek))
+       (sort-by sorter)
        (take limit)
        (map row->model)))
 
@@ -228,50 +281,89 @@
 (def fields
   [:diff :id :interests])
 
+
+(defn yyy
+  [values value]
+  (not (contains? values value)))
+
+
+(defn get-target-likes
+  [acc->sim exclude]
+
+  (db/scope
+
+   (-> scope-base
+
+       (push :find
+             '?sim
+             '?id
+             '?email
+             '?status
+             '?sname
+             '?fname)
+
+       (push :where
+             '[?a :account/likes ?like]
+             '[?like :like/id ?u]
+             '[(hlcup.api.suggest/yyy ?exclude ?u)]
+             '[(clojure.core/get ?acc->sim ?a) ?sim]
+
+             '[?u :account/id ?id]
+             '[?u :account/email ?email]
+             '[?u :account/status ?status]
+             '[(get-else $ ?u :account/sname "N/A") ?sname]
+             '[(get-else $ ?u :account/fname "N/A") ?fname])
+
+       (push :args (keys acc->sim) (set exclude) acc->sim)
+       (push :in '[?a ...] '?exclude '?acc->sim))))
+
+
 (defn _handler
   [request]
 
   (let [{:keys [params]} request
         {:keys [limit id city country]} params
 
-        account (db/pull [:account/likes
-                          :account/sex]
-
-                         [:account/id id])
-
-        likes  (:account/likes account)
+        account (db/pull [:account/id id])
         sex    (-> account :account/sex :db/ident)
 
-        mapping (into {}
-                      (for [like likes
-                            :let [account (-> like :like/id :db/id)
-                                  timestamp (-> like :like/ts)]]
-                        [account timestamp]))
+        m1 (map1 {:id id})
 
-        targets (-> mapping keys set)
+        targets (map first m1)
 
         params {:city city
                 :country country
-                :mapping mapping
                 :targets targets
                 :sex sex}
 
-        scope (params->scope params)
-        {:keys [args]} scope
+        m2 (map2 m1 params)
+        m3 (map3 m1 m2)
 
-        query (dissoc scope :args :fields)
+        ;; m4 (map4 )
 
-        ;; _ (clojure.pprint/pprint query)
-        ;; _ (clojure.pprint/pprint args)
+        ;; scope (params->scope params)
 
-        rows (db/query query args)
+        ;; _ (clojure.pprint/pprint scope)
 
-        ;; todo limit nil
+        ;; rows (db/scope scope)
 
-        models (rows->models rows limit)]
+        ]
 
     {:status 200
-     :body {:accounts models}}))
+     :body {:accounts m3}}
+
+    #_
+    (if (seq rows)
+
+      (let [acc->sim (dissoc (into {} rows) a)
+            others (get-target-likes acc->sim targets)
+            models (rows->models others limit)]
+
+        {:status 200
+         :body {:accounts models}})
+
+      {:status 200
+       :body {:accounts []}})))
 
 
 (def handler

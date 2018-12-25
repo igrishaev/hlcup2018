@@ -15,7 +15,7 @@
     (doall
 
      (take
-      99999
+      80
       (csv/read-csv reader :separator \tab))))
 
   )
@@ -40,7 +40,7 @@
 
     (let [[method uri status body] row]
 
-      (when (re-find #"/recommend/" uri)
+      (when (re-find #"/suggest/" uri)
 
         (let [url (format "http://127.0.0.1:8088%s" uri)
               response (client/request {:method method
