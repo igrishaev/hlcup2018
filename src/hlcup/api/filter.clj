@@ -512,28 +512,17 @@
    params))
 
 
-
-(defn id->status
-  [id]
-  (case id
-    :status/free "свободны"
-    :status/busy "заняты"
-    :status/complex "всё сложно"))
-
-
 (defn ->model
   [fields row]
   (let [model (zipmap fields row)
         {:keys [sex status]} model]
     (cond-> model
 
-      ;; todo status names
-
       status
-      (update :status id->status)
+      (update :status db/tr)
 
       sex
-      (update :sex name))))
+      (update :sex db/tr))))
 
 
 (defn fix-premium
@@ -571,8 +560,8 @@
 
         query (dissoc scope :args :fields)
 
-        _ (clojure.pprint/pprint query)
-        _ (clojure.pprint/pprint args)
+        ;; _ (clojure.pprint/pprint query)
+        ;; _ (clojure.pprint/pprint args)
 
         rows (db/query query args)
 

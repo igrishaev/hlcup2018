@@ -295,13 +295,6 @@
       (apply-defaults)))
 
 
-(defn id->sex
-  [id]
-  (case id
-    17592186045417 "m"
-    17592186045418 "f"))
-
-
 (defn ->model
   [fields row]
   (let [model (zipmap fields row)
@@ -313,7 +306,7 @@
       (assoc :country nil)
 
       sex
-      (update :sex id->sex))))
+      (update :sex db/tr))))
 
 
 (defn sorter
