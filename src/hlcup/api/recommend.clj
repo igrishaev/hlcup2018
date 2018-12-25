@@ -56,13 +56,10 @@
   :birth
   [scope _ value]
   (-> scope
-      (push :find
-            '?birth '?diff)
-      (push :where
-            '[?a :account/birth ?birth]
-            '[(hlcup.db.func/diff ?birth ?_birth) ?diff])
-      (push :in     '?_birth)
-      (push :args   value)))
+      (push :find  '?birth '?_birth)
+      (push :where '[?a :account/birth ?birth])
+      (push :in    '?_birth)
+      (push :args  value)))
 
 
 (defmethod apply-predicate
@@ -112,6 +109,7 @@
       country
       (apply-predicate :country country)
 
+      ;; todo year
       true
       (->
        (apply-predicate :birth 12312312)
@@ -120,8 +118,8 @@
 
 (defn row-sorter
   [row]
-  (let [[_ ;; birth
-         diff
+  (let [[birth1
+         birth2
          id
          status
          interests
@@ -130,11 +128,11 @@
          _ ;;sname
          ] row]
 
-    [;; prem
+    [;; TODO prem
 
      status
      (- interests)
-     (- diff)
+     (Math/abs ^long (- birth1 birth2))
      (- id)
 
      ]
@@ -156,7 +154,7 @@
   [row]
 
   (let [[birth
-         _ ;; diff
+         _ ;; _birth
          id
          status
          _ ;; interests
