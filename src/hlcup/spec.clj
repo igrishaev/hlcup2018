@@ -31,6 +31,10 @@
 
 (s/def ::string string?)
 
+(s/def ::non-empty-string
+  (s/and ::string seq))
+
+
 (s/def ::string-split
   (s/and
    string?
@@ -84,7 +88,8 @@
 
 (s/def ::query_id any?)
 
-(s/def ::limit ::->int)
+(s/def ::limit
+  (s/and ::->int pos?))
 
 ;;
 
@@ -229,8 +234,8 @@
 (s/def ::fname     ::string)
 (s/def ::sname     ::string)
 (s/def ::phone     ::string)
-(s/def ::country   ::string)
-(s/def ::city      ::string)
+(s/def ::country   ::non-empty-string)
+(s/def ::city      ::non-empty-string)
 (s/def ::joined    ::->int)
 (s/def ::birth     ::->int)
 (s/def ::interests ::string)

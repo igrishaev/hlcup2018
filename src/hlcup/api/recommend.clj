@@ -112,18 +112,20 @@
 (defn status->points
   [status]
   (case  (-> status db/tr)
-    "свободны" 2
+    "свободны" 0
     "всё сложно" 1
-    "заняты" 0))
+    "заняты" 2))
 
 
 (defn is-premium?
   [premium]
-  (and
-   premium
-   (<= (-> premium :account/premium :premium/start)
-       db/NOW
-       (-> premium :account/premium :premium/finish))))
+  (if (and
+       premium
+       (<= (-> premium :account/premium :premium/start)
+           db/NOW
+           (-> premium :account/premium :premium/finish)))
+    0
+    1))
 
 
 (defn row-sorter
@@ -135,17 +137,11 @@
            birth
            premium] row]
 
-      ;; (println "--------")
-      ;; (println (is-premium? premium) premium)
-      ;; (println (db/tr status) (status->points status))
-      ;; (println (- interests))
-      ;; (println (Math/abs ^long (- _birth birth)))
-
       [(is-premium? premium)
        (status->points status)
        (- interests)
        (Math/abs ^long (- _birth birth))
-       id])))
+       (- id)])))
 
 
 (defn row->model
@@ -210,7 +206,7 @@
         _ (when-not account
             (error/error 404 ""))
 
-        interests (:account/interests account)
+        interests (-> account :account/interests (or []))
         birth     (:account/birth account)
         sex       (-> account :account/sex :db/ident)
         sex       (sex-opposite sex)
@@ -225,12 +221,13 @@
 
         query (dissoc scope :args :fields)
 
-        _ (clojure.pprint/pprint query)
-        _ (clojure.pprint/pprint args)
+        ;; _ (clojure.pprint/pprint query)
+        ;; _ (clojure.pprint/pprint args)
 
         rows (db/query query args)
 
-        ;; todo limit nil
+        ;; _ (when (empty? rows)
+        ;;     (error/error 404 ""))
 
         models (rows->models rows limit birth)]
 
