@@ -94,7 +94,8 @@
   [scope _]
 
   (let [where '[?a :account/country ?country]
-        found? (-> scope :where (item-found? where))]
+        found? (-> scope :where (item-found? where))
+        linked? (account-linked? scope)]
 
     (cond-> scope
 
@@ -104,8 +105,19 @@
        (push :find '?country))
 
       (not found?)
-      (push :where
-            '[(get-else $ ?a :account/country "N/A") ?country]))))
+      (cond->
+        ;; TODO slow
+        (not linked?)
+        (push :where '[?a :account/id _])
+
+        true
+        (push :where
+              '[(get-else $ ?a :account/country "N/A") ?country])))))
+
+
+(defn account-linked?
+  [scope]
+  (-> scope :where first first (= '?a)))
 
 
 (defmethod apply-group
@@ -113,7 +125,8 @@
   [scope _]
 
   (let [where '[?a :account/city ?city]
-        found? (-> scope :where (item-found? where))]
+        found? (-> scope :where (item-found? where))
+        linked? (account-linked? scope)]
 
     (cond-> scope
 
@@ -123,8 +136,15 @@
        (push :find   '?city))
 
       (not found?)
-      (push :where
-            '[(get-else $ ?a :account/city "N/A") ?city]))))
+      (cond->
+
+        ;; TODO: that's too slow!
+        (not linked?)
+        (push :where '[?a :account/id _])
+
+        true
+        (push :where
+              '[(get-else $ ?a :account/city "N/A") ?city])))))
 
 
 (defmulti apply-predicate
