@@ -315,19 +315,16 @@
       (update :status db/tr))))
 
 
-(defn sorter
-  [row]
-  [(peek row) (first row)])
-
-
 ;; todo improve
 (defn apply-order
-  [order rows]
+  [order keys rows]
 
-  (cond-> (sort-by sorter rows)
+  (let [juxter (apply juxt :count (map keyword keys))]
 
-    (= order -1)
-    (reverse)))
+    (cond-> (sort-by juxter rows)
+
+      (= order -1)
+      (reverse))))
 
 
 ;; todo N/A to nil
@@ -337,8 +334,12 @@
 (defn rows->models
   [rows fields order limit keys]
   (->> rows
-       (apply-order order)
+       (map (partial ->model fields))
+
+       (apply-order order keys)
        (take limit)
+
+       #_
        (map (partial ->model fields))))
 
 
@@ -355,8 +356,8 @@
 
         query (dissoc scope :args :fields)
 
-        _ (clojure.pprint/pprint query)
-        _ (clojure.pprint/pprint args)
+        ;; _ (clojure.pprint/pprint query)
+        ;; _ (clojure.pprint/pprint args)
 
         rows (db/query query args)
 

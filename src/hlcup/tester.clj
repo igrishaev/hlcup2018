@@ -15,7 +15,7 @@
     (doall
 
      (take
-      100000
+      999999
       (csv/read-csv reader :separator \tab))))
 
   )
