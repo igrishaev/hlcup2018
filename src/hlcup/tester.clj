@@ -14,11 +14,9 @@
   (with-open [reader (io/reader "/Users/ivan/Downloads/phase_1_get.answ")]
     (doall
 
-     #_
      (take
-      500)
-
-     (csv/read-csv reader :separator \tab)))
+      30
+      (csv/read-csv reader :separator \tab))))
 
   )
 
@@ -42,7 +40,7 @@
 
     (let [[method uri status body] row]
 
-      (when (str/starts-with? uri "/accounts/filter")
+      (when (str/starts-with? uri "/accounts/group")
 
         (let [url (format "http://127.0.0.1:8088%s" uri)
               response (client/request {:method method

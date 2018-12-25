@@ -202,10 +202,24 @@
 
 
 ;; todo year
+;; todo between
 (defmethod apply-predicate
   :birth
   [scope _ value]
-  (apply-filter scope :birth value))
+
+  (let [[ts1 ts2] (time/ts->range value)]
+    (-> scope
+        (push :where
+              '[?a :account/birth ?birth]
+              '[(<= ?birth1 ?birth )]
+              '[(<= ?birth  ?birth2)])
+
+        (push :in
+              '?birth1 '?birth2)
+
+        (push :args
+              ts1 ts2)))
+)
 
 
 ;; todo store year
@@ -233,11 +247,22 @@
   (apply-filter scope :interests value))
 
 
+;; TODO: weights!
+
+
 ;; todo single
 (defmethod apply-predicate
   :likes
   [scope _ value]
-  (apply-filter scope :likes value))
+
+  ;; todo might be slow
+  (-> scope
+      (push :where
+            '[?a :account/likes ?like]
+            '[?like :like/id ?target])
+
+      (push :in '?target)
+      (push :args [:account/id value])))
 
 
 (defn apply-defaults
@@ -270,14 +295,25 @@
       (apply-defaults)))
 
 
+(defn id->sex
+  [id]
+  (case id
+    17592186045417 "m"
+    17592186045418 "f"))
+
+
 (defn ->model
   [fields row]
   (let [model (zipmap fields row)
-        {:keys [country]} model]
+        {:keys [sex country]} model]
 
     (cond-> model
+
       (= country "N/A")
-      (assoc :country nil))))
+      (assoc :country nil)
+
+      sex
+      (update :sex id->sex))))
 
 
 (defn sorter
