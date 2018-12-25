@@ -567,8 +567,8 @@
 
         query (dissoc scope :args :fields)
 
-        _ (clojure.pprint/pprint query)
-        _ (clojure.pprint/pprint args)
+        ;; _ (clojure.pprint/pprint query)
+        ;; _ (clojure.pprint/pprint args)
 
         rows (db/query query args)
 
