@@ -22,7 +22,7 @@
           (handler (assoc request :params result))
 
           (let [report (s/explain-str spec params)]
-            (e/error 400 report))
+            (e/error 400 ""))
 
           #_
           (e/error 400 "wrong input params"))))))

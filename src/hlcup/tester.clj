@@ -14,9 +14,11 @@
   (with-open [reader (io/reader "/Users/ivan/Downloads/phase_1_get.answ")]
     (doall
 
+     #_
      (take
-      18
-      (csv/read-csv reader :separator \tab))))
+      500)
+
+     (csv/read-csv reader :separator \tab)))
 
   )
 
@@ -38,22 +40,27 @@
 
   (doseq [row (transform)]
 
-    (let [[method uri status body] row
-          url (format "http://127.0.0.1:8088%s" uri)
-          response (client/request {:method method
-                                    :url url
-                                    :throw-exceptions false
-                                    :as :json})]
+    (let [[method uri status body] row]
 
-      (testing url
+      (when (str/starts-with? uri "/accounts/filter")
 
-        (is (= status (:status response)))
-        (is (= body (:body response))))
+        (let [url (format "http://127.0.0.1:8088%s" uri)
+              response (client/request {:method method
+                                        :url url
+                                        :throw-exceptions false
+                                        :as :json})]
 
+
+          (testing url
+
+            (is (= status (:status response)))
+            (is (= body (:body response))))))
+
+      #_
       (when-not
           (or (= status (:status response))
               (= body (:body response)))
-        (throw (ex-info "stop" {})))
+          (throw (ex-info "stop" {})))
 
       )
 

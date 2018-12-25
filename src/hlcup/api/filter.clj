@@ -3,9 +3,7 @@
    [hlcup.spec]
    [hlcup.middleware :refer [wrap-spec]]
    [hlcup.db :as db]
-
-   [clj-time.core :as time]
-   [clj-time.coerce :as coerce]
+   [hlcup.time :as time2]
 
    [clojure.string :as str]))
 
@@ -28,19 +26,27 @@
   `(update ~vector ~key conj ~@values))
 
 
+(defn item-found?
+  [^clojure.lang.PersistentVector vector item]
+  (-> vector (.indexOf item) (>= 0)))
+
+
 (defn apply-defaults
   [scope]
   ;; todo check email
-  (-> scope
-      (push :where
-            '[?a :account/email ?email]
-            '[?a :account/id ?id])
 
-      (push :fields
-            :email :id)
+  (let [where '[?a :account/email ?email]
+        found? (-> scope :where (item-found? where))]
 
-      (push :find
-            '?email '?id)))
+    (cond-> scope
+      (not found?)
+      (push :where where)
+
+      true
+      (->
+       (push :where  '[?a :account/id ?id])
+       (push :fields :email :id)
+       (push :find   '?email '?id)))))
 
 
 (defmulti apply-predicate
@@ -75,15 +81,12 @@
 
 (defmethod apply-predicate
   :email_domain
-  ;; todo: store domain
+  ;; TODO: store domain!!!
   [scope _ value]
   (-> scope
       (push :where
             '[?a :account/email ?email]
             '[(hlcup.api.filter/domain-match? ?email ?_domain)])
-
-      (push :fields :email)
-      (push :find   '?email)
       (push :in     '?_domain)
       (push :args   value)))
 
@@ -95,9 +98,6 @@
       (push :where
             '[?a :account/email ?email]
             '[(< ?email ?_email)])
-
-      (push :fields :email)
-      (push :find   '?email)
       (push :in     '?_email)
       (push :args   value)))
 
@@ -109,9 +109,6 @@
       (push :where
             '[?a :account/email ?email]
             '[(> ?email ?_email)])
-
-      (push :fields :email)
-      (push :find   '?email)
       (push :in     '?_email)
       (push :args   value)))
 
@@ -181,11 +178,11 @@
   [scope _ value]
   (condp = value
 
-    0
+    1
     (-> scope
         (push :where '[(missing? $ ?a :account/fname)]))
 
-    1
+    0
     (-> scope
         (push :fields :fname)
         (push :where  '[?a :account/fname ?fname])
@@ -260,11 +257,11 @@
   [scope _ value]
   (condp = value
 
-    0
+    1
     (-> scope
         (push :where '[(missing? $ ?a :account/phone)]))
 
-    1
+    0
     (-> scope
         (push :fields :phone)
         (push :where  '[?a :account/phone ?phone])
@@ -289,11 +286,11 @@
   [scope _ value]
   (condp = value
 
-    0
+    1
     (-> scope
         (push :where '[(missing? $ ?a :account/country)]))
 
-    1
+    0
     (-> scope
         (push :fields :country)
         (push :where  '[?a :account/country ?country])
@@ -366,17 +363,6 @@
       (push :args  value)))
 
 
-;; todo: compare timestamps; calc low/high
-;; todo types
-(defn timestamp-year?
-  [timestamp year]
-  (-> timestamp
-      (* 1000)
-      coerce/from-long
-      time/year
-      (= year)))
-
-
 
 
 
@@ -384,16 +370,17 @@
 (defmethod apply-predicate
   :birth_year
   [scope _ value]
-  ;; todo store year
-  ;; todo move query funcs
-  (-> scope
-      (push :fields :birth)
-      (push :where
-            '[?a :account/birth ?birth]
-            '[(hlcup.api.filter/timestamp-year? ?birth ?year)])
-      (push :find  '?birth)
-      (push :in    '?_year)
-      (push :args  value)))
+
+  (let [[ts1 ts2] (time2/ts->range value)]
+    (-> scope
+        (push :fields :birth)
+        (push :where
+              '[?a :account/birth ?birth]
+              '[(<= ?birth1 ?birth )]
+              '[(<= ?birth  ?birth2)])
+        (push :find  '?birth)
+        (push :in    '?birth1 '?birth2)
+        (push :args  ts1 ts2))))
 
 ;;
 
@@ -422,24 +409,37 @@
 
 ;;
 
+(defn _accs
+  [ids]
+
+  (let [refs (for [id ids]
+               [:account/id id])
+
+        result
+        (db/query '{:find [(distinct ?_id) ?a]
+                     :in [$ [?account ...] ],
+                     :where
+                     [[?like :like/id ?account]
+                      [?a :account/likes ?like]
+                      [?account :account/id ?_id]]}
+                  [refs])
+
+        ]
+    (map second (get (group-by first result) (set ids)))))
+
+
+
+
 (defmethod apply-predicate
   :likes_contains
   [scope _ value]
 
-  (let [new-sym (partial stub "account")
-        symbols (repeatedly (count value) new-sym)]
+  (let [accs (_accs value)]
 
     (-> scope
-
-        (push :where '[?a :account/likes ?like])
-        (append :where
-                (for [sym symbols]
-                  ['?like :like/id sym]))
-
-        (append :in symbols)
-        (append :args
-                (for [id value]
-                  [:account/id id])))))
+        (push :where '[?a :account/id _])
+        (push :in '[?a ...])
+        (push :args accs))))
 
 ;;
 
@@ -451,21 +451,23 @@
 
       ;; todo now
       ;; todo premium storage
+      ;; todo between func
       (push :fields
-            :start :finisj)
+            :start :finish)
 
       (push :where
             '[?a :account/premium ?premium]
             '[?premium :premium/start ?start]
             '[?premium :premium/finish ?finish]
-            '[(< ?start ?now ?finish)])
+            '[(<= ?start ?now)]
+            '[(<= ?now ?finish)])
 
       (push :find
             '?start
             '?finish)
 
       (push :in '?now)
-      (push :args 111111111)))
+      (push :args 1545613207)))
 
 
 (defmethod apply-predicate
@@ -474,11 +476,11 @@
 
   (condp = value
 
-    0
+    1
     (-> scope
         (push :where '[(missing? $ ?a :account/premium)]))
 
-    1
+    0
     (-> scope
         ;; todo premium
         (push :fields :start :finish)
