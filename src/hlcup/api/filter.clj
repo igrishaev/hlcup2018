@@ -446,10 +446,6 @@
         (push :in '[?a ...])
         (push :args accs))))
 
-;;
-
-(def NOW 1545699626)
-
 
 (defmethod apply-predicate
   :premium_now
@@ -474,7 +470,7 @@
             '?finish)
 
       (push :in '?now)
-      (push :args NOW)))
+      (push :args db/NOW)))
 
 
 (defmethod apply-predicate

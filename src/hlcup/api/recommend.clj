@@ -24,8 +24,9 @@
   (-> scope
       (push :where
             '[?a :account/id     ?id]
-            '[?a :account/email  ?email]
             '[?a :account/status ?status]
+            '[?a :account/birth ?birth]
+            '[?a :account/email  ?email]
             '[(get-else $ ?a :account/fname "N/A") ?fname]
             '[(get-else $ ?a :account/sname "N/A") ?sname])
 
@@ -33,9 +34,12 @@
             '?id
             '?status
             '(count ?interests)
+            '?birth
+            '(pull ?a [:account/premium])
             '?email
             '?fname
-            '?sname)))
+            '?sname
+            )))
 
 
 (defmulti apply-predicate
@@ -50,16 +54,6 @@
       (push :where  '[?a :account/interests ?interests])
       (push :in     '[?interests ...])
       (push :args   value)))
-
-
-(defmethod apply-predicate
-  :birth
-  [scope _ value]
-  (-> scope
-      (push :find  '?birth '?_birth)
-      (push :where '[?a :account/birth ?birth])
-      (push :in    '?_birth)
-      (push :args  value)))
 
 
 (defmethod apply-predicate
@@ -93,6 +87,7 @@
   [params]
   (let [{:keys [interests
                 sex
+                birth
                 country
                 city]} params]
 
@@ -109,76 +104,83 @@
       country
       (apply-predicate :country country)
 
-      ;; todo year
       true
-      (->
-       (apply-predicate :birth 12312312)
-       (apply-defaults)))))
+      (apply-defaults))))
+
+
+
+(defn status->points
+  [status]
+  (case  (-> status db/tr)
+    "свободны" 2
+    "всё сложно" 1
+    "заняты" 0))
+
+
+(defn is-premium?
+  [premium]
+  (and
+   premium
+   (<= (-> premium :account/premium :premium/start)
+       db/NOW
+       (-> premium :account/premium :premium/finish))))
 
 
 (defn row-sorter
-  [row]
-  (let [[birth1
-         birth2
-         id
-         status
-         interests
-         _ ;;email
-         _ ;;fname
-         _ ;;sname
-         ] row]
+  [_birth]
+  (fn [row]
+    (let [[id
+           status
+           interests
+           birth
+           premium] row]
 
-    [;; TODO prem
+      ;; (println "--------")
+      ;; (println (is-premium? premium) premium)
+      ;; (println (db/tr status) (status->points status))
+      ;; (println (- interests))
+      ;; (println (Math/abs ^long (- _birth birth)))
 
-     status
-     (- interests)
-     (Math/abs ^long (- birth1 birth2))
-     (- id)
-
-     ]
-
-    )
-
-  )
-
-
-(defn id->status
-  [id]
-  (case id
-    17592186045419 "свободны"
-    17592186045420 "заняты"
-    17592186045421 "всё сложно"))
+      [(is-premium? premium)
+       (status->points status)
+       (- interests)
+       (Math/abs ^long (- _birth birth))
+       id])))
 
 
 (defn row->model
   [row]
 
-  (let [[birth
-         _ ;; _birth
-         id
+  (let [[id
          status
-         _ ;; interests
+         _
+         birth
+         premium
          email
          fname
-         sname
-         ] row]
+         sname] row]
 
     (cond-> {:id id
              :birth birth
              :email email
-             :status (id->status status)}
+             :status (db/tr status)}
 
       (not= fname "N/A")
       (assoc :fname fname)
 
       (not= sname "N/A")
-      (assoc :sname sname))))
+      (assoc :sname sname)
+
+      premium
+      (assoc :premium
+             {:start (-> premium :account/premium :premium/start)
+              :finish (-> premium :account/premium :premium/finish)}))))
 
 
 (defn rows->models
-  [rows limit]
+  [rows limit birth]
   (->> rows
-       (sort-by row-sorter)
+       (sort-by (row-sorter birth))
        (take limit)
        (map row->model)))
 
@@ -209,15 +211,14 @@
             (error/error 404 ""))
 
         interests (:account/interests account)
-        birth     (:account/sex account)
+        birth     (:account/birth account)
         sex       (-> account :account/sex :db/ident)
         sex       (sex-opposite sex)
 
         params {:city city
                 :country country
                 :interests interests
-                :sex sex
-                :birth birth}
+                :sex sex}
 
         scope (params->scope params)
         {:keys [args]} scope
@@ -231,7 +232,7 @@
 
         ;; todo limit nil
 
-        models (rows->models rows limit)]
+        models (rows->models rows limit birth)]
 
     {:status 200
      :body {:accounts models}}))

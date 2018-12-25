@@ -115,3 +115,7 @@
 (defn set-tr
   []
   (alter-var-root #'tr read-tr))
+
+
+;; todo
+(def NOW 1545699626)
