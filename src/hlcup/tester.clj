@@ -40,7 +40,7 @@
 
     (let [[method uri status body] row]
 
-      (when (re-find #"/suggest/" uri)
+      (when true #_(re-find #"/suggest/" uri)
 
         (let [url (format "http://127.0.0.1:8088%s" uri)
               response (client/request {:method method
