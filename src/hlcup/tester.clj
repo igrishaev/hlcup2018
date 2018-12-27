@@ -33,6 +33,129 @@
       "")]))
 
 
+(defn chunks
+  [n coll]
+  (partition n n [] coll))
+
+
+(defn read-post1
+  []
+  (with-open [reader (io/reader "/Users/ivan/Downloads/data/test_accounts_251218/ammo/phase_2_post.ammo")]
+
+    (doall
+     (loop [lines (take 99999999 (line-seq reader))
+            result []]
+
+       (if (empty? lines)
+         result
+
+         (let [[block rest] (split-with #(not= "" %) lines)
+
+               [_ request] block
+               [_ json & rest] rest
+               [method uri _] (str/split request #" ")
+
+               node [(-> method str/lower-case keyword)
+                     (format "http://127.0.0.1:8088%s" uri)
+                     (json/parse-string json true)]
+
+               result (conj result node)]
+
+           (recur rest result)))))))
+
+
+(defn read-post2
+  []
+
+  (with-open [reader (io/reader "/Users/ivan/Downloads/data/test_accounts_251218/answers/phase_2_post.answ")]
+    (let [rows (csv/read-csv reader :separator \tab)]
+      (doall
+       (for [[_method _uri status body] rows]
+         [(Integer/parseInt status)
+          (json/parse-string body true)])))))
+
+
+(defn read-post3
+  []
+  (map
+   (fn [[method url payload] [status body]]
+     [method url payload status body])
+   (read-post1)
+   (read-post2)))
+
+
+#_
+"inzodbamebteuw@yahoo.com"
+
+(def page 6)
+(def step 50)
+
+
+(deftest test-post
+
+  (doseq [row (->> (read-post3)
+                   (drop 0)
+                   (take 50000)
+
+                   #_
+                   (drop (* page step))
+                   #_
+                   (take step))]
+
+    (let [[method uri payload status body] row]
+
+      (when (re-find #"/accounts/new/" uri)
+
+        (let [response (client/request {:method method
+                                        :url uri
+                                        :form-params payload
+                                        :content-type :json
+                                        :throw-exceptions false
+                                        :as :json})]
+
+
+          (testing (str uri " " payload)
+
+            (is (= status (:status response)))
+            (is (= (or body "") (or (:body response) ""))))))
+
+      )
+
+    )
+  )
+
+
+#_
+(deftest test-post
+  (doseq [row (->> _post
+
+                   #_
+                   (drop (* page step))
+                   #_
+                   (take step))]
+
+    (let [[method uri payload status body] row]
+
+      (when (re-find #"/accounts/new/" uri)
+
+        (let [response (client/request {:method method
+                                        :url uri
+                                        :form-params payload
+                                        :content-type :json
+                                        :throw-exceptions false
+                                        :as :json})]
+
+
+          (testing (str uri " " payload)
+
+            (is (= status (:status response)))
+            (is (= body (:body response))))))
+
+      )
+
+    )
+  )
+
 (deftest test-data
   []
 
@@ -42,17 +165,17 @@
 
       (when true #_(re-find #"/suggest/" uri)
 
-        (let [url (format "http://127.0.0.1:8088%s" uri)
-              response (client/request {:method method
-                                        :url url
-                                        :throw-exceptions false
-                                        :as :json})]
+            (let [url (format "http://127.0.0.1:8088%s" uri)
+                  response (client/request {:method method
+                                            :url url
+                                            :throw-exceptions false
+                                            :as :json})]
 
 
-          (testing url
+              (testing url
 
-            (is (= status (:status response)))
-            (is (= body (:body response))))))
+                (is (= status (:status response)))
+                (is (= body (:body response))))))
 
       #_
       (when-not

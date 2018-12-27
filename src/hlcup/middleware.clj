@@ -21,6 +21,7 @@
         (if valid?
           (handler (assoc request :params result))
 
+          ;; todo drop report
           (let [report (s/explain-str spec params)]
             (e/error 400 ""))
 

@@ -1,5 +1,6 @@
 (ns hlcup.spec
   (:require
+   [hlcup.time :as time]
    [clojure.spec.alpha :as s]
    [clojure.string :as str]
    [clojure.set :as set]))
@@ -45,6 +46,12 @@
 (defn ->int
   [^String value]
   (Integer/parseInt value))
+
+
+(s/def ::int int?)
+
+(s/def ::int-pos
+  (s/and ::int pos?))
 
 
 (s/def ::->int
@@ -295,3 +302,98 @@
    :opt-un [::query_id
             ::country
             ::city]))
+
+
+
+;;
+;;  /accounts/new/
+;;
+
+
+(defn in-range?
+  [min max]
+  (fn [value]
+    (<= min value max)))
+
+
+(s/def :new/interests
+  (s/coll-of
+   ::non-empty-string))
+
+
+(def birth-range?
+  (in-range?
+   (time/ymd->ts 1950 1 1)
+   (time/ymd->ts 2005 1 1)))
+
+
+(s/def :new/birth
+  (s/and ::int-pos
+         birth-range?))
+
+
+(def joined-range?
+  (in-range?
+   (time/ymd->ts 2011 1 1)
+   (time/ymd->ts 2018 1 1)))
+
+
+(s/def :new/joined
+  (s/and ::int-pos
+         joined-range?))
+
+
+(s/def :new/id ::int-pos)
+
+(s/def :new/sex ::->sex)
+
+
+(s/def :new.like/ts ::int-pos)
+
+(s/def :new.like/id ::int-pos)
+
+
+(s/def :new/like
+  (s/keys :req-un [:new.like/ts
+                   :new.like/id]))
+
+(s/def :new/likes
+  (s/coll-of :new/like))
+
+(s/def :new/status ::->status)
+
+
+(def prem-time?
+  (partial <= (time/ymd->ts 2018 1 1)))
+
+
+(s/def :new.premium/ts
+  (s/and int? prem-time?))
+
+(s/def :new.premium/start :new.premium/ts)
+(s/def :new.premium/finish :new.premium/ts)
+
+(s/def :new/premium
+  (s/keys :req-un [:new.premium/start
+                   :new.premium/finish]))
+
+
+(s/def :hlcup.api.new/params
+  (only-keys
+
+   :req-un [:new/id
+            ::email
+            :new/sex
+            :new/birth
+            :new/status
+            :new/joined]
+
+   :opt-un [:new/premium
+            :new/interests
+            :new/likes
+            ::query_id
+            ::country
+            ::city
+            ::phone
+            ::fname
+            ::sname]))

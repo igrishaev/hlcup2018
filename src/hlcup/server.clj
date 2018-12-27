@@ -49,3 +49,9 @@
 (defn stop
   []
   (mount/stop #'server))
+
+
+(comment
+  (start)
+  server
+  (stop))

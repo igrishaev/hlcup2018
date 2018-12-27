@@ -3,7 +3,7 @@
    [hlcup.spec]
    [hlcup.middleware :refer [wrap-spec]]
    [hlcup.db :as db]
-   [hlcup.time :as time2]
+   [hlcup.time :as time]
 
    [clojure.string :as str]))
 
@@ -376,7 +376,7 @@
   :birth_year
   [scope _ value]
 
-  (let [[ts1 ts2] (time2/ts->range value)]
+  (let [[ts1 ts2] (time/ts->range value)]
     (-> scope
         (push :fields :birth)
         (push :where

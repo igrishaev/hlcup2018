@@ -5,13 +5,15 @@
    hlcup.api.group
    hlcup.api.recommend
    hlcup.api.suggest
+   hlcup.api.new
 
    [hlcup.error :as error]
 
    [compojure.core :refer [defroutes GET POST]]
 
    [ring.middleware.json
-    :refer [wrap-json-response]]
+    :refer [wrap-json-params
+            wrap-json-response]]
 
    [ring.middleware.keyword-params
     :refer [wrap-keyword-params]]
@@ -34,6 +36,9 @@
   (GET "/accounts/:id/suggest/"
        [id :as request] (hlcup.api.suggest/handler request))
 
+  (POST "/accounts/new/"
+        request (hlcup.api.new/handler request))
+
   (fn [_]
     {:status 404
      :body nil}))
@@ -42,6 +47,7 @@
 (def app
   (-> app-naked
       wrap-keyword-params
+      wrap-json-params
       wrap-params
       wrap-json-response
       error/wrap-exception

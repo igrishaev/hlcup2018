@@ -64,6 +64,8 @@
   (mount/stop #'conn))
 
 
+;; Shortcupts
+
 (defn pull
   ([ref]
    (pull '[*] ref))
@@ -85,6 +87,11 @@
     (d/query
      {:query query
       :args (cons (d/db conn) args)})))
+
+
+(defn transact
+  [data]
+  @(d/transact conn data))
 
 ;; tr
 
@@ -128,3 +135,13 @@
 
 ;; todo
 (def NOW 1545699626)
+
+
+(comment
+  (stop)
+  (start)
+
+  (def _db (d/db conn))
+
+
+  )

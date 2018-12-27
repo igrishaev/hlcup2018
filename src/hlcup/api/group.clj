@@ -89,6 +89,11 @@
       (push :where where))))
 
 
+(defn account-linked?
+  [scope]
+  (-> scope :where first first (= '?a)))
+
+
 (defmethod apply-group
   "country"
   [scope _]
@@ -106,18 +111,14 @@
 
       (not found?)
       (cond->
-        ;; TODO slow
-        (not linked?)
-        (push :where '[?a :account/id _])
+          ;; TODO slow
+          (not linked?)
+          (push :where '[?a :account/id _])
 
-        true
-        (push :where
-              '[(get-else $ ?a :account/country "N/A") ?country])))))
+          true
+          (push :where
+                '[(get-else $ ?a :account/country "N/A") ?country])))))
 
-
-(defn account-linked?
-  [scope]
-  (-> scope :where first first (= '?a)))
 
 
 (defmethod apply-group

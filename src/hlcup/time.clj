@@ -4,6 +4,12 @@
    [clj-time.coerce :as coerce]))
 
 
+(defn ymd->ts
+  [y m d]
+  (coerce/to-epoch
+   (time/date-time y m d)))
+
+
 (defn ts->year
   [timestamp]
   (-> timestamp
