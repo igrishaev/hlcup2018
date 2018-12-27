@@ -1,0 +1,6 @@
+
+add memoize
+check todos
+store null fields
+indexes
+no history
