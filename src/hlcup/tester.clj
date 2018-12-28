@@ -95,7 +95,7 @@
 
   (doseq [row (->> (read-post3)
                    (drop 0)
-                   (take 50000)
+                   (take 99999)
 
                    #_
                    (drop (* page step))
@@ -104,7 +104,7 @@
 
     (let [[method uri payload status body] row]
 
-      (when (re-find #"/accounts/new/" uri)
+      (when (re-find #"/accounts/\d+" uri)
 
         (let [response (client/request {:method method
                                         :url uri

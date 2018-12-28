@@ -343,6 +343,13 @@
          joined-range?))
 
 
+(s/def :new/email
+  (s/and string?
+         seq
+         (fn [^String email]
+           (pos? (.indexOf email "@")))))
+
+
 (s/def :new/id ::int-pos)
 
 (s/def :new/sex ::->sex)
@@ -382,7 +389,7 @@
   (only-keys
 
    :req-un [:new/id
-            ::email
+            :new/email
             :new/sex
             :new/birth
             :new/status
@@ -391,6 +398,26 @@
    :opt-un [:new/premium
             :new/interests
             :new/likes
+            ::query_id
+            ::country
+            ::city
+            ::phone
+            ::fname
+            ::sname]))
+
+
+(s/def :hlcup.api.update/params
+  (only-keys
+
+   :req-un [::id]
+
+   :opt-un [:new/email
+            :new/sex
+            :new/birth
+            :new/status
+            :new/joined
+            :new/premium
+            :new/interests
             ::query_id
             ::country
             ::city

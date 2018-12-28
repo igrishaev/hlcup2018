@@ -6,6 +6,7 @@
    hlcup.api.recommend
    hlcup.api.suggest
    hlcup.api.new
+   hlcup.api.update
 
    [hlcup.error :as error]
 
@@ -31,13 +32,19 @@
        request (hlcup.api.group/handler request))
 
   (GET "/accounts/:id/recommend/"
-       [id :as request] (hlcup.api.recommend/handler request))
+       [id :as request]
+       (hlcup.api.recommend/handler request))
 
   (GET "/accounts/:id/suggest/"
-       [id :as request] (hlcup.api.suggest/handler request))
+       [id :as request]
+       (hlcup.api.suggest/handler request))
 
   (POST "/accounts/new/"
         request (hlcup.api.new/handler request))
+
+  (POST "/accounts/:id/"
+        [id :as request]
+        (hlcup.api.update/handler request))
 
   (fn [_]
     {:status 404
