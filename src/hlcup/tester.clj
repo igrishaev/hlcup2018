@@ -11,7 +11,7 @@
 
 (defn load-data
   []
-  (with-open [reader (io/reader "/Users/ivan/Downloads/data/test_accounts_251218/answers/phase_1_get.answ")]
+  (with-open [reader (io/reader "/Users/ivan/Downloads/test_accounts_261218/answers/phase_1_get.answ")]
     (doall
 
      (take
@@ -95,7 +95,7 @@
 
   (doseq [row (->> (read-post3)
                    (drop 0)
-                   (take 99999)
+                   (take 1000000)
 
                    #_
                    (drop (* page step))
@@ -104,7 +104,7 @@
 
     (let [[method uri payload status body] row]
 
-      (when (re-find #"/accounts/\d+" uri)
+      (when (re-find #"/accounts/like" uri)
 
         (let [response (client/request {:method method
                                         :url uri
@@ -125,41 +125,10 @@
   )
 
 
-#_
-(deftest test-post
-  (doseq [row (->> _post
-
-                   #_
-                   (drop (* page step))
-                   #_
-                   (take step))]
-
-    (let [[method uri payload status body] row]
-
-      (when (re-find #"/accounts/new/" uri)
-
-        (let [response (client/request {:method method
-                                        :url uri
-                                        :form-params payload
-                                        :content-type :json
-                                        :throw-exceptions false
-                                        :as :json})]
-
-
-          (testing (str uri " " payload)
-
-            (is (= status (:status response)))
-            (is (= body (:body response))))))
-
-      )
-
-    )
-  )
-
 (deftest test-data
   []
 
-  (doseq [row (transform)]
+  (doseq [row (take 50 (transform))]
 
     (let [[method uri status body] row]
 
@@ -176,16 +145,4 @@
 
                 (is (= status (:status response)))
                 (is (= body (:body response))))))
-
-      #_
-      (when-not
-          (or (= status (:status response))
-              (= body (:body response)))
-          (throw (ex-info "stop" {})))
-
-      )
-
-    )
-
-
-  )
+)))

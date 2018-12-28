@@ -7,6 +7,7 @@
    hlcup.api.suggest
    hlcup.api.new
    hlcup.api.update
+   hlcup.api.likes
 
    [hlcup.error :as error]
 
@@ -42,9 +43,9 @@
   (POST "/accounts/new/"
         request (hlcup.api.new/handler request))
 
-  (POST "/accounts/:id/"
-        [id :as request]
-        (hlcup.api.update/handler request))
+  (POST "/accounts/likes/"
+        request
+        (hlcup.api.likes/handler request))
 
   (fn [_]
     {:status 404

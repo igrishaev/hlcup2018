@@ -424,3 +424,25 @@
             ::phone
             ::fname
             ::sname]))
+
+
+(s/def :likes.like/likee ::int-pos)
+(s/def :likes.like/ts ::int-pos)
+(s/def :likes.like/liker ::int-pos)
+
+
+(s/def :likes/like
+  (s/keys :req-un [:likes.like/likee
+                   :likes.like/ts
+                   :likes.like/liker]))
+
+(s/def :likes/likes
+  (s/coll-of :likes/like))
+
+
+(s/def :hlcup.api.likes/params
+  (only-keys
+
+   :req-un [:likes/likes]
+
+   :opt-un [::query_id]))

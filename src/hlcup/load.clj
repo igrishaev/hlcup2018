@@ -124,7 +124,6 @@
 
 (defn read-all
   []
-  (-> "/Users/ivan/Downloads/data/test_accounts_251218/data/data.zip"
-      load-zip
-      first
-      ->accounts))
+  (->> "/Users/ivan/Downloads/test_accounts_261218/data/data.zip"
+       load-zip
+       (map ->accounts)))

@@ -45,6 +45,7 @@
         _ (when (exists-email? email)
             (error/error 404 "email %s exists" email))
 
+        ;; todo check nil?
         _ (when (some nil?
                       (map exists-id?
                            (map :id likes)))

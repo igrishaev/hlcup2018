@@ -35,8 +35,12 @@
   []
   (d/create-database uri)
   (let [_conn (d/connect uri)]
+
     @(load-schema _conn)
-    @(d/transact _conn (load/read-all))
+
+    (doseq [chunk (load/read-all)]
+      @(d/transact _conn chunk))
+
     _conn))
 
 
@@ -134,7 +138,7 @@
 
 
 ;; todo
-(def NOW 1545699626)
+(def NOW 1545834028)
 
 
 (comment
